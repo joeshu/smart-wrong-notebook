@@ -158,9 +158,10 @@ void main() {
       );
 
   Future<void> showReviewPane(WidgetTester tester) async {
-    final segmented = find.byType(SegmentedButton<bool>);
-    if (segmented.evaluate().isNotEmpty) {
-      await tester.tap(find.text('识别文字'));
+    final segmentedFinder = find.byType(SegmentedButton<bool>);
+    if (segmentedFinder.evaluate().isNotEmpty) {
+      final segmented = tester.widget<SegmentedButton<bool>>(segmentedFinder);
+      segmented.onSelectionChanged?.call(<bool>{false});
       await tester.pumpAndSettle();
     }
   }
