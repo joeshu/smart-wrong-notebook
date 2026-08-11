@@ -1015,6 +1015,7 @@ class _ArchiveActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final isUrgent = action.label == '重新分析';
     final isReview = action.label == '开始复习';
     final background = isUrgent
