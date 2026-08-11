@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - run: flutter pub get
+
+      - name: Analyze
+        shell: bash
+        run: |
+          set +e
+          flutter analyze --machine --no-fatal-warnings --no-fatal-infos > analyzer.txt 2>&1
+          status=$?
+          while IFS= read -r message; do
+            [[ "$message" != *"error •"* ]] && continue
+            message=${message//'%'/'%25'}
+            message=${message//$'\r'/'%0D'}
+            message=${message//$'\n'/'%0A'}
+            echo "::error title=Flutter Analyzer::$message"
+          done < analyzer.txt
+          exit "$status"
+
+      - name: Run tests
+        shell: bash
+        run: |
+          set +e
+          flutter test --machine --dart-define=FLUTTER_TEST=true > test-results.jsonl 2>&1
+          status=$?
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          lines = Path('test-results.jsonl').read_text(errors='replace').splitlines()
+          tests = {}
+          for raw in lines:
+              try:
+                  event = json.loads(raw)
+              except json.JSONDecodeError:
+                  continue
+              if not isinstance(event, dict):
+                  continue
+              if event.get('type') == 'testStart':
+                  test = event.get('test') or {}
+                  tests[test.get('id')] = test.get('name', test.get('url', 'unknown test'))
+              elif event.get('type') == 'print' and ('EXCEPTION' in str(event.get('message')) or 'TestFailure' in str(event.get('message'))):
+                  message = str(event.get('message', 'Test failure'))[:1200]
+                  message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                  print(f'::error title=Flutter Test exception::{message}')
+              elif event.get('type') == 'error':
+                  message = str(event.get('error', 'Test error'))[:1200]
+                  message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                  print(f'::error title=Flutter Test error::{message}')
+              elif event.get('type') == 'testDone' and event.get('result') not in ('success', 'skipped'):
+                  test_id = event.get('testID')
+                  message = f"{tests.get(test_id, test_id)} ({event.get('result')})"
+                  print(f'::error title=Flutter Test failed::{message}')
+          PY
+          exit "$status"
+
+      - name: Upload test machine results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-test-machine-results
+          path: test-results.jsonl
+          retention-days: 3
+          if-no-files-found: ignore

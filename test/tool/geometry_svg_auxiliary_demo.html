@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>几何配图 SVG + 辅助线动态演示</title>
+<style>
+body { font-family: -apple-system, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; background: #f8f9fa; }
+.exercise { background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.exercise h3 { margin-top: 0; color: #333; }
+.exercise .question { font-size: 15px; color: #444; margin-bottom: 16px; line-height: 1.6; }
+.exercise svg { display: block; margin: 0 auto 16px; }
+.controls { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.controls label { font-size: 14px; color: #555; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.controls input[type="checkbox"] { width: 18px; height: 18px; accent-color: #f57c00; }
+.btn-animate { background: #f57c00; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: background 0.2s; }
+.btn-animate:hover { background: #e65100; }
+.btn-animate:disabled { background: #ccc; cursor: not-allowed; }
+h2 { color: #1a1a2e; margin-top: 40px; }
+.note { background: #fff3cd; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; line-height: 1.6; }
+
+/* 辅助线动画 */
+.auxiliary { opacity: 0; transition: opacity 0.6s ease; }
+.auxiliary.visible { opacity: 1; }
+.auxiliary.animate { animation: drawIn 0.8s ease forwards; }
+
+@keyframes drawIn {
+  from { stroke-dashoffset: 200; opacity: 0; }
+  to { stroke-dashoffset: 0; opacity: 1; }
+}
+
+.aux-line-animated {
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+}
+.aux-line-animated.draw {
+  animation: strokeDraw 1s ease forwards;
+}
+@keyframes strokeDraw {
+  to { stroke-dashoffset: 0; }
+}
+
+.aux-text-animated {
+  opacity: 0;
+}
+.aux-text-animated.show {
+  animation: fadeIn 0.5s ease 0.6s forwards;
+}
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+.aux-area-animated {
+  opacity: 0;
+}
+.aux-area-animated.show {
+  animation: fadeIn 0.5s ease 0.8s forwards;
+}
+</style>
+</head>
+<body>
+<h1>几何配图 SVG + 辅助线动态演示</h1>
+<p class="note">
+  点击"显示辅助线"切换辅助线的显示/隐藏。<br>
+  点击"动画展示"可以看到辅助线逐步绘制的动画效果，模拟解题思路的展开过程。
+</p>
+
+<!-- 样例 1：三角形外角 -->
+<h2>样例 1：三角形内角和（外角辅助线）</h2>
+<div class="exercise">
+  <div class="question">如图，在△ABC中，∠A = 50°，∠B = 65°，求∠C的度数。<br><em>辅助线思路：延长 BC 到 D，利用外角定理。</em></div>
+  <div class="controls">
+    <label><input type="checkbox" id="aux1" onchange="toggleAux(1)"> 显示辅助线</label>
+    <button class="btn-animate" onclick="animateAux(1)">动画展示</button>
+  </div>
+  <svg id="svg1" width="280" height="200" viewBox="0 0 280 200">
+    <!-- 主图形：三角形 -->
+    <polygon points="140,25 40,170 220,170" fill="none" stroke="#333" stroke-width="2"/>
+    <!-- 顶点标注 -->
+    <text x="140" y="16" font-size="14" text-anchor="middle" fill="#1a73e8" font-weight="bold">A</text>
+    <text x="28" y="182" font-size="14" text-anchor="middle" fill="#1a73e8" font-weight="bold">B</text>
+    <text x="232" y="182" font-size="14" text-anchor="middle" fill="#1a73e8" font-weight="bold">C</text>
+    <!-- 角度标注 -->
+    <path d="M 130,48 A 22,22 0 0,1 150,48" fill="none" stroke="#e63946" stroke-width="1.5"/>
+    <text x="140" y="62" font-size="11" text-anchor="middle" fill="#e63946">50°</text>
+    <path d="M 58,158 A 18,18 0 0,1 48,165" fill="none" stroke="#e63946" stroke-width="1.5"/>
+    <text x="65" y="152" font-size="11" text-anchor="middle" fill="#e63946">65°</text>
+    <text x="205" y="158" font-size="12" text-anchor="middle" fill="#2d6a4f" font-weight="bold">?</text>
+
+    <!-- 辅助线组 -->
+    <g class="auxiliary" id="aux-group-1">
+      <line class="aux-line-animated" x1="220" y1="170" x2="270" y2="170" stroke="#f57c00" stroke-width="2" stroke-dasharray="6,4"/>
+      <text class="aux-text-animated" x="272" y="174" font-size="13" fill="#f57c00" font-weight="bold">D</text>
+      <!-- 外角弧 -->
+      <path class="aux-line-animated" d="M 235,170 A 15,15 0 0,0 228,158" fill="none" stroke="#f57c00" stroke-width="1.5"/>
+      <text class="aux-text-animated" x="242" y="155" font-size="10" fill="#f57c00">∠ACD=115°</text>
+      <!-- 解题提示 -->
+      <text class="aux-text-animated" x="180" y="195" font-size="10" fill="#888">外角 = 两个不相邻内角之和</text>
+    </g>
+  </svg>
+</div>
+
+<!-- 样例 2：半圆面积（连半径辅助线） -->
+<h2>样例 2：半圆面积（半径辅助线）</h2>
+<div class="exercise">
+  <div class="question">如图，半圆的直径 AB = 10 cm，求阴影部分（半圆）的面积。<br><em>辅助线思路：连圆心 O，标注半径 r = 5。</em></div>
+  <div class="controls">
+    <label><input type="checkbox" id="aux2" onchange="toggleAux(2)"> 显示辅助线</label>
+    <button class="btn-animate" onclick="animateAux(2)">动画展示</button>
+  </div>
+  <svg id="svg2" width="280" height="180" viewBox="0 0 280 180">
+    <!-- 半圆 -->
+    <path d="M 50,130 A 90,90 0 0,1 230,130" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+    <!-- 直径 -->
+    <line x1="50" y1="130" x2="230" y2="130" stroke="#333" stroke-width="2"/>
+    <!-- 端点 -->
+    <circle cx="50" cy="130" r="3.5" fill="#333"/>
+    <circle cx="230" cy="130" r="3.5" fill="#333"/>
+    <!-- 标注 -->
+    <text x="38" y="144" font-size="13" text-anchor="middle" fill="#1a73e8" font-weight="bold">A</text>
+    <text x="242" y="144" font-size="13" text-anchor="middle" fill="#1a73e8" font-weight="bold">B</text>
+    <text x="140" y="150" font-size="12" text-anchor="middle" fill="#e63946">10 cm</text>
+    <text x="140" y="95" font-size="12" text-anchor="middle" fill="#1565c0">阴影</text>
+
+    <!-- 辅助线组 -->
+    <g class="auxiliary" id="aux-group-2">
+      <!-- 圆心 -->
+      <circle class="aux-area-animated" cx="140" cy="130" r="4" fill="#f57c00"/>
+      <text class="aux-text-animated" x="140" y="120" font-size="12" text-anchor="middle" fill="#f57c00" font-weight="bold">O</text>
+      <!-- 半径线 -->
+      <line class="aux-line-animated" x1="140" y1="130" x2="140" y2="40" stroke="#f57c00" stroke-width="1.8" stroke-dasharray="5,3"/>
+      <text class="aux-text-animated" x="152" y="85" font-size="11" fill="#f57c00">r = 5</text>
+      <!-- 另一条半径 -->
+      <line class="aux-line-animated" x1="140" y1="130" x2="203" y2="62" stroke="#f57c00" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <text class="aux-text-animated" x="180" y="82" font-size="10" fill="#888">S = πr²/2 = 25π/2</text>
+    </g>
+  </svg>
+</div>
+
+<!-- 样例 3：等腰三角形（底边中线/高） -->
+<h2>样例 3：等腰三角形底角（作高辅助线）</h2>
+<div class="exercise">
+  <div class="question">如图，等腰三角形 ABC 中，AB = AC，∠A = 40°，求∠B。<br><em>辅助线思路：作底边 BC 的中线 AD（也是高），将等腰三角形分为两个全等直角三角形。</em></div>
+  <div class="controls">
+    <label><input type="checkbox" id="aux3" onchange="toggleAux(3)"> 显示辅助线</label>
+    <button class="btn-animate" onclick="animateAux(3)">动画展示</button>
+  </div>
+  <svg id="svg3" width="260" height="210" viewBox="0 0 260 210">
+    <!-- 等腰三角形 -->
+    <polygon points="130,25 45,180 215,180" fill="none" stroke="#333" stroke-width="2"/>
+    <!-- 等边标记 -->
+    <line x1="84" y1="97" x2="90" y2="107" stroke="#2d6a4f" stroke-width="2.5"/>
+    <line x1="170" y1="97" x2="176" y2="107" stroke="#2d6a4f" stroke-width="2.5"/>
+    <!-- 顶点标注 -->
+    <text x="130" y="16" font-size="14" text-anchor="middle" fill="#1a73e8" font-weight="bold">A</text>
+    <text x="32" y="192" font-size="14" text-anchor="middle" fill="#1a73e8" font-weight="bold">B</text>
+    <text x="228" y="192" font-size="14" text-anchor="middle" fill="#1a73e8" font-weight="bold">C</text>
+    <!-- 角度 -->
+    <path d="M 118,48 A 18,18 0 0,1 142,48" fill="none" stroke="#e63946" stroke-width="1.5"/>
+    <text x="130" y="62" font-size="11" text-anchor="middle" fill="#e63946">40°</text>
+    <text x="63" y="165" font-size="12" fill="#2d6a4f" font-weight="bold">?</text>
+
+    <!-- 辅助线组 -->
+    <g class="auxiliary" id="aux-group-3">
+      <!-- 中线/高 AD -->
+      <line class="aux-line-animated" x1="130" y1="25" x2="130" y2="180" stroke="#f57c00" stroke-width="2" stroke-dasharray="6,4"/>
+      <!-- D 点 -->
+      <circle class="aux-area-animated" cx="130" cy="180" r="3" fill="#f57c00"/>
+      <text class="aux-text-animated" x="130" y="198" font-size="13" text-anchor="middle" fill="#f57c00" font-weight="bold">D</text>
+      <!-- 直角标记 -->
+      <path class="aux-area-animated" d="M 130,180 L 130,170 L 140,170" fill="none" stroke="#f57c00" stroke-width="1.5"/>
+      <!-- 角度标注 -->
+      <text class="aux-text-animated" x="155" y="168" font-size="10" fill="#f57c00">90°</text>
+      <!-- 解题提示 -->
+      <text class="aux-text-animated" x="130" y="208" font-size="10" text-anchor="middle" fill="#888">∠B = (180° - 40°) / 2 = 70°</text>
+    </g>
+  </svg>
+</div>
+
+<!-- 样例 4：平行四边形对角线 -->
+<h2>样例 4：平行四边形面积（作高辅助线）</h2>
+<div class="exercise">
+  <div class="question">如图，平行四边形 ABCD 中，AB = 8，∠B = 60°，BC = 5，求面积。<br><em>辅助线思路：从 A 作 BC 的高 AE，利用三角函数求高。</em></div>
+  <div class="controls">
+    <label><input type="checkbox" id="aux4" onchange="toggleAux(4)"> 显示辅助线</label>
+    <button class="btn-animate" onclick="animateAux(4)">动画展示</button>
+  </div>
+  <svg id="svg4" width="300" height="200" viewBox="0 0 300 200">
+    <!-- 平行四边形 -->
+    <polygon points="80,50 240,50 270,150 110,150" fill="none" stroke="#333" stroke-width="2"/>
+    <!-- 顶点标注 -->
+    <text x="72" y="44" font-size="14" fill="#1a73e8" font-weight="bold">A</text>
+    <text x="244" y="44" font-size="14" fill="#1a73e8" font-weight="bold">B</text>
+    <text x="276" y="162" font-size="14" fill="#1a73e8" font-weight="bold">C</text>
+    <text x="100" y="162" font-size="14" fill="#1a73e8" font-weight="bold">D</text>
+    <!-- 边长标注 -->
+    <text x="160" y="40" font-size="11" text-anchor="middle" fill="#e63946">AB = 8</text>
+    <text x="262" y="105" font-size="11" fill="#e63946">BC = 5</text>
+    <!-- 角度 -->
+    <path d="M 225,50 A 15,15 0 0,1 237,62" fill="none" stroke="#e63946" stroke-width="1.5"/>
+    <text x="222" y="72" font-size="10" fill="#e63946">60°</text>
+
+    <!-- 辅助线组 -->
+    <g class="auxiliary" id="aux-group-4">
+      <!-- 高 AE -->
+      <line class="aux-line-animated" x1="80" y1="50" x2="80" y2="150" stroke="#f57c00" stroke-width="2" stroke-dasharray="6,4"/>
+      <!-- E 点 -->
+      <circle class="aux-area-animated" cx="80" cy="150" r="3" fill="#f57c00"/>
+      <text class="aux-text-animated" x="70" y="164" font-size="12" fill="#f57c00" font-weight="bold">E</text>
+      <!-- 直角标记 -->
+      <path class="aux-area-animated" d="M 80,150 L 80,140 L 90,140" fill="none" stroke="#f57c00" stroke-width="1.5"/>
+      <!-- 高的标注 -->
+      <text class="aux-text-animated" x="60" y="105" font-size="11" fill="#f57c00">h</text>
+      <!-- 计算提示 -->
+      <text class="aux-text-animated" x="150" y="185" font-size="10" fill="#888">h = BC·sin60° = 5·(√3/2) ≈ 4.33</text>
+      <text class="aux-text-animated" x="150" y="198" font-size="10" fill="#888">S = AB·h = 8 × 4.33 ≈ 20√3</text>
+    </g>
+  </svg>
+</div>
+
+<!-- 样例 5：圆内接三角形（连直径辅助线） -->
+<h2>样例 5：圆内接角（直径辅助线）</h2>
+<div class="exercise">
+  <div class="question">如图，AB 是圆 O 的直径，C 是圆上一点，求∠ACB。<br><em>辅助线思路：连接 OC，利用"直径所对的圆周角是直角"定理。</em></div>
+  <div class="controls">
+    <label><input type="checkbox" id="aux5" onchange="toggleAux(5)"> 显示辅助线</label>
+    <button class="btn-animate" onclick="animateAux(5)">动画展示</button>
+  </div>
+  <svg id="svg5" width="280" height="240" viewBox="0 0 280 240">
+    <!-- 圆 -->
+    <circle cx="140" cy="120" r="80" fill="none" stroke="#333" stroke-width="2"/>
+    <!-- 直径 AB -->
+    <line x1="60" y1="120" x2="220" y2="120" stroke="#333" stroke-width="2"/>
+    <!-- 圆心 -->
+    <circle cx="140" cy="120" r="3" fill="#333"/>
+    <text x="140" y="136" font-size="12" text-anchor="middle" fill="#333">O</text>
+    <!-- A, B 端点 -->
+    <circle cx="60" cy="120" r="3.5" fill="#1a73e8"/>
+    <circle cx="220" cy="120" r="3.5" fill="#1a73e8"/>
+    <text x="46" y="124" font-size="14" fill="#1a73e8" font-weight="bold">A</text>
+    <text x="228" y="124" font-size="14" fill="#1a73e8" font-weight="bold">B</text>
+    <!-- C 点（圆上） -->
+    <circle cx="170" cy="42" r="3.5" fill="#1a73e8"/>
+    <text x="176" y="34" font-size="14" fill="#1a73e8" font-weight="bold">C</text>
+    <!-- AC, BC -->
+    <line x1="60" y1="120" x2="170" y2="42" stroke="#333" stroke-width="1.5"/>
+    <line x1="220" y1="120" x2="170" y2="42" stroke="#333" stroke-width="1.5"/>
+    <!-- 求解 -->
+    <text x="158" y="62" font-size="12" fill="#2d6a4f" font-weight="bold">?</text>
+
+    <!-- 辅助线组 -->
+    <g class="auxiliary" id="aux-group-5">
+      <!-- OC 连线 -->
+      <line class="aux-line-animated" x1="140" y1="120" x2="170" y2="42" stroke="#f57c00" stroke-width="2" stroke-dasharray="6,4"/>
+      <text class="aux-text-animated" x="148" y="82" font-size="10" fill="#f57c00">r</text>
+      <!-- OA = OC = OB 标记 -->
+      <text class="aux-text-animated" x="95" y="112" font-size="10" fill="#f57c00">r</text>
+      <text class="aux-text-animated" x="185" y="112" font-size="10" fill="#f57c00">r</text>
+      <!-- 直角标记 -->
+      <path class="aux-area-animated" d="M 165,50 L 158,52 L 160,59" fill="none" stroke="#f57c00" stroke-width="2"/>
+      <!-- 结论 -->
+      <text class="aux-text-animated" x="140" y="220" font-size="11" text-anchor="middle" fill="#f57c00">直径所对圆周角 = 90°</text>
+      <text class="aux-text-animated" x="140" y="235" font-size="10" text-anchor="middle" fill="#888">∠ACB = 90°</text>
+    </g>
+  </svg>
+</div>
+
+<hr>
+<h2>技术说明</h2>
+<ul>
+  <li><strong>辅助线动态展示</strong>：CSS animation + stroke-dashoffset 实现"画线"效果，text 用 fadeIn 延迟出现</li>
+  <li><strong>交互方式</strong>：checkbox 切换显示/隐藏，按钮触发动画（模拟解题思路逐步展开）</li>
+  <li><strong>Flutter 对应</strong>：AnimationController + CustomPainter 可实现相同效果</li>
+  <li><strong>配色</strong>：主图 #333，标注 #1a73e8，已知条件 #e63946，辅助线 #f57c00</li>
+</ul>
+
+<script>
+function toggleAux(n) {
+  const group = document.getElementById('aux-group-' + n);
+  const checkbox = document.getElementById('aux' + n);
+  if (checkbox.checked) {
+    group.classList.add('visible');
+    // 重置动画类
+    group.querySelectorAll('.aux-line-animated').forEach(el => el.classList.remove('draw'));
+    group.querySelectorAll('.aux-text-animated').forEach(el => el.classList.remove('show'));
+    group.querySelectorAll('.aux-area-animated').forEach(el => el.classList.remove('show'));
+  } else {
+    group.classList.remove('visible');
+  }
+}
+
+function animateAux(n) {
+  const group = document.getElementById('aux-group-' + n);
+  const checkbox = document.getElementById('aux' + n);
+
+  // 先隐藏
+  group.classList.remove('visible');
+  group.querySelectorAll('.aux-line-animated').forEach(el => el.classList.remove('draw'));
+  group.querySelectorAll('.aux-text-animated').forEach(el => el.classList.remove('show'));
+  group.querySelectorAll('.aux-area-animated').forEach(el => el.classList.remove('show'));
+
+  // 短暂延迟后开始动画
+  setTimeout(() => {
+    group.classList.add('visible');
+    checkbox.checked = true;
+
+    // 逐步触发动画
+    const lines = group.querySelectorAll('.aux-line-animated');
+    const texts = group.querySelectorAll('.aux-text-animated');
+    const areas = group.querySelectorAll('.aux-area-animated');
+
+    lines.forEach((el, i) => {
+      setTimeout(() => el.classList.add('draw'), i * 400);
+    });
+    texts.forEach((el, i) => {
+      setTimeout(() => el.classList.add('show'), 300 + i * 350);
+    });
+    areas.forEach((el, i) => {
+      setTimeout(() => el.classList.add('show'), 200 + i * 300);
+    });
+  }, 200);
+}
+</script>
+</body>
+</html>

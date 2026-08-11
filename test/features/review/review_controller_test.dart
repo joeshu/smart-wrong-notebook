@@ -1,0 +1,199 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:smart_wrong_notebook/src/data/repositories/question_repository.dart';
+import 'package:smart_wrong_notebook/src/domain/models/content_status.dart';
+import 'package:smart_wrong_notebook/src/domain/models/mastery_level.dart';
+import 'package:smart_wrong_notebook/src/domain/models/question_record.dart';
+import 'package:smart_wrong_notebook/src/domain/models/review_log.dart';
+import 'package:smart_wrong_notebook/src/domain/models/subject.dart';
+import 'package:smart_wrong_notebook/src/domain/repositories/review_log_repository.dart';
+import 'package:smart_wrong_notebook/src/features/review/presentation/review_controller.dart';
+
+QuestionRecord _makeQuestion(String id,
+    {MasteryLevel mastery = MasteryLevel.newQuestion, int reviewCount = 0}) {
+  final now = DateTime.now();
+  return QuestionRecord(
+    id: id,
+    imagePath: '/tmp/$id.jpg',
+    subject: Subject.math,
+    extractedQuestionText: 'sample',
+    normalizedQuestionText: 'corrected',
+    contentFormat: QuestionContentFormat.plain,
+    tags: const [],
+    createdAt: now,
+    updatedAt: now,
+    lastReviewedAt: null,
+    reviewCount: reviewCount,
+    isFavorite: false,
+    contentStatus: ContentStatus.ready,
+    masteryLevel: mastery,
+    analysisResult: null,
+  );
+}
+
+void main() {
+  late InMemoryQuestionRepository repo;
+  late InMemoryReviewLogRepository logRepo;
+  late ReviewController controller;
+
+  setUp(() {
+    repo = InMemoryQuestionRepository();
+    logRepo = InMemoryReviewLogRepository();
+    controller = ReviewController(repository: repo, logRepository: logRepo);
+  });
+
+  test('markMastered updates mastery and increments reviewCount', () async {
+    await repo.saveDraft(_makeQuestion('q-1'));
+    final result = await controller.markMastered('q-1');
+
+    expect(result.masteryLevel, MasteryLevel.mastered);
+    expect(result.reviewCount, 1);
+
+    final persisted = await repo.getById('q-1');
+    expect(persisted!.masteryLevel, MasteryLevel.mastered);
+    expect(persisted.reviewCount, 1);
+  });
+
+  test('markReviewing transitions from newQuestion to reviewing', () async {
+    await repo.saveDraft(_makeQuestion('q-1'));
+    final result = await controller.markReviewing('q-1');
+
+    expect(result.masteryLevel, MasteryLevel.reviewing);
+    expect(result.reviewCount, 1);
+
+    final persisted = await repo.getById('q-1');
+    expect(persisted!.masteryLevel, MasteryLevel.reviewing);
+  });
+
+  test('markReviewing increments reviewCount when already reviewing', () async {
+    await repo.saveDraft(
+        _makeQuestion('q-1', mastery: MasteryLevel.reviewing, reviewCount: 3));
+    final result = await controller.markReviewing('q-1');
+
+    expect(result.masteryLevel, MasteryLevel.reviewing);
+    expect(result.reviewCount, 4);
+  });
+
+  test('markForgot schedules a FSRS Again retry (10 min) and writes a log',
+      () async {
+    await repo.saveDraft(_makeQuestion('q-1'));
+    final before = DateTime.now();
+    final result = await controller.markForgot('q-1');
+
+    expect(result.masteryLevel, MasteryLevel.reviewing);
+    expect(result.reviewCount, 1);
+    expect(result.lastReviewedAt, isNotNull);
+    expect(result.nextReviewAt, isNotNull);
+    // Phase 13-3：FSRS Again 在 Learning 阶段 = 10 分钟（替换原固定 1 小时）。
+    // 确定性间隔（非随机），断言 >= 9 分钟且明显短于旧的 1 小时。
+    final diff = result.nextReviewAt!.difference(before);
+    expect(diff, greaterThanOrEqualTo(const Duration(minutes: 9)));
+    expect(diff, lessThan(const Duration(hours: 1)));
+    expect((await logRepo.getByQuestionId('q-1')).single.result, 'forgot');
+  });
+
+  test('resetToNew sets mastery back to newQuestion', () async {
+    await repo.saveDraft(
+        _makeQuestion('q-1', mastery: MasteryLevel.mastered, reviewCount: 5));
+    final result = await controller.resetToNew('q-1');
+
+    expect(result.masteryLevel, MasteryLevel.newQuestion);
+    expect(result.reviewCount, 5);
+  });
+
+  test('markMastered throws when question not found', () async {
+    expect(() => controller.markMastered('nonexistent'), throwsArgumentError);
+  });
+
+  test('getDueQuestions excludes mastered questions', () async {
+    await repo
+        .saveDraft(_makeQuestion('q-1', mastery: MasteryLevel.newQuestion));
+    await repo.saveDraft(_makeQuestion('q-2', mastery: MasteryLevel.reviewing));
+    await repo.saveDraft(_makeQuestion('q-3', mastery: MasteryLevel.mastered));
+
+    final due = await controller.getDueQuestions();
+    expect(due.length, 2);
+    expect(due.map((q) => q.id), containsAll(['q-1', 'q-2']));
+  });
+
+  test('full review lifecycle: new -> reviewing -> mastered', () async {
+    await repo.saveDraft(_makeQuestion('q-1'));
+
+    var result = await controller.markReviewing('q-1');
+    expect(result.masteryLevel, MasteryLevel.reviewing);
+    expect(result.reviewCount, 1);
+
+    result = await controller.markMastered('q-1');
+    expect(result.masteryLevel, MasteryLevel.mastered);
+    expect(result.reviewCount, 2);
+
+    final due = await controller.getDueQuestions();
+    expect(due.where((q) => q.id == 'q-1'), isEmpty);
+  });
+
+  // --- ReviewLog persistence tests ---
+
+  test('markMastered writes a review log', () async {
+    await repo.saveDraft(_makeQuestion('q-1'));
+    await controller.markMastered('q-1');
+
+    final logs = await logRepo.getByQuestionId('q-1');
+    expect(logs.length, 1);
+    expect(logs.first.result, 'mastered');
+    expect(logs.first.masteryAfter, MasteryLevel.mastered);
+    expect(logs.first.questionRecordId, 'q-1');
+  });
+
+  test('markReviewing writes a review log', () async {
+    await repo.saveDraft(_makeQuestion('q-1'));
+    await controller.markReviewing('q-1');
+
+    final logs = await logRepo.getByQuestionId('q-1');
+    expect(logs.length, 1);
+    expect(logs.first.result, 'reviewing');
+    expect(logs.first.masteryAfter, MasteryLevel.reviewing);
+  });
+
+  test('multiple reviews create multiple logs in order', () async {
+    await repo.saveDraft(_makeQuestion('q-1'));
+    await controller.markReviewing('q-1');
+    await controller.markMastered('q-1');
+
+    final logs = await logRepo.getByQuestionId('q-1');
+    expect(logs.length, 2);
+    expect(logs.first.result, 'reviewing');
+    expect(logs.last.result, 'mastered');
+  });
+
+  test('review log repository clear removes all logs', () async {
+    await logRepo.insert(ReviewLog(
+      id: 'log-1',
+      questionRecordId: 'q-1',
+      reviewedAt: DateTime(2026),
+      result: 'reviewing',
+      masteryAfter: MasteryLevel.reviewing,
+    ));
+    await logRepo.insert(ReviewLog(
+      id: 'log-2',
+      questionRecordId: 'q-2',
+      reviewedAt: DateTime(2026),
+      result: 'mastered',
+      masteryAfter: MasteryLevel.mastered,
+    ));
+
+    expect(await logRepo.listAll(), hasLength(2));
+
+    await logRepo.clear();
+
+    expect(await logRepo.listAll(), isEmpty);
+    expect(await logRepo.getByQuestionId('q-1'), isEmpty);
+  });
+
+  test('controller without logRepository does not throw', () async {
+    final noLogController = ReviewController(repository: repo);
+    await repo.saveDraft(_makeQuestion('q-1'));
+    final result = await noLogController.markMastered('q-1');
+
+    expect(result.masteryLevel, MasteryLevel.mastered);
+    expect(await logRepo.listAll(), isEmpty);
+  });
+}

@@ -1,0 +1,90 @@
+name: iOS Unsigned IPA (LiveContainer)
+
+# This workflow builds an unsigned IPA by manually packaging the unsigned Runner.app.
+# Intended for LiveContainer-style import/testing workflows, not normal signed iOS distribution.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ios-no-codesign.yml'
+      - 'ios/**'
+      - 'lib/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/ios-no-codesign.yml'
+      - 'ios/**'
+      - 'lib/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+
+jobs:
+  build-ios-no-codesign:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
+          pod install
+
+      - name: Build unsigned .app
+        run: |
+          flutter build ios --release --no-codesign || \
+          (echo "Fallback: signing check failed, using xcodebuild..." && \
+           cd ios && \
+           xcodebuild -workspace Runner.xcworkspace -scheme Runner -sdk iphoneos \
+             -configuration Release \
+             CODE_SIGNING_ALLOWED=NO \
+             COMPILER_INDEX_STORE_ENABLE=NO \
+             build)
+
+      - name: Package unsigned IPA for LiveContainer
+        run: |
+          set -e
+          # 尝试 flutter 输出目录，失败则用 xcodebuild 输出目录
+          APP_DIR="build/ios/Release-iphoneos"
+          if [ ! -d "$APP_DIR/Runner.app" ]; then
+            APP_DIR="ios/build/Release-iphoneos"
+          fi
+          echo "Using app dir: $(pwd)/$APP_DIR"
+          cd "$APP_DIR"
+          rm -rf Payload Runner.ipa
+          mkdir -p Payload
+          # ditto 比 cp -R 更适合复制 .app bundle：保留元数据、
+          # 资源 fork 与符号链接结构，避免 LiveContainer 解析失败。
+          ditto Runner.app Payload/Runner.app
+          # -X 排除 macOS 扩展属性（__MACOSX 目录与 ._ 文件），
+          # 否则部分 IPA 安装工具会把 __MACOSX 误识别为顶层目录，
+          # 进而报"Payload 文件夹不存在"。
+          # 不使用 -y：让 zip 解引用符号链接，避免无效链接导致解压失败。
+          /usr/bin/zip -Xqr Runner.ipa Payload
+          rm -rf Payload
+          # 诊断输出：确认 IPA 顶层就是 Payload/Runner.app
+          echo "=== IPA 顶层结构（前 20 项） ==="
+          /usr/bin/unzip -l Runner.ipa | head -25
+          echo "=== IPA 大小 ==="
+          ls -lh Runner.ipa
+
+      - name: Upload unsigned IPA artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-wrong-notebook-ios-unsigned-ipa
+          # 只上传 Runner.ipa 本身。之前同时上传 Runner.app 目录会让
+          # 用户下载到的 artifact zip 内部同时包含 .ipa 和 .app，容易
+          # 被误当成 IPA 直接安装，进而报"Payload 文件夹不存在"。
+          path: build/ios/Release-iphoneos/Runner.ipa
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Build release bundle
+        run: flutter build appbundle --release
+
+      - name: Ensure release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "${{ github.ref_name }}" >/dev/null 2>&1 || \
+          gh release create "${{ github.ref_name }}" --title "AI错题本 ${{ github.ref_name }}" --notes "Automated release for ${{ github.ref_name }}"
+
+      - name: Upload APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            build/app/outputs/flutter-apk/app-release.apk#ai-wrong-notebook-${{ github.ref_name }}.apk \
+            --clobber
+
+      - name: Upload AAB
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            build/app/outputs/bundle/release/app-release.aab#ai-wrong-notebook-${{ github.ref_name }}.aab \
+            --clobber

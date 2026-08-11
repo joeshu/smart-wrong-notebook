@@ -1,0 +1,33 @@
+name: Build Android
+
+# 已停用：不会在 push / PR 时自动触发。
+# 需要构建 Android APK 时，前往 Actions 页面手动触发本 workflow，
+# 或恢复下方注释的 push / pull_request 触发器。
+on:
+  workflow_dispatch:
+  # push:
+  #   branches: [main]
+  # pull_request:
+  #   branches: [main]
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-wrong-notebook-release
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30

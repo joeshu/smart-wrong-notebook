@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>几何练习题 SVG 配图样例</title>
+<style>
+body { font-family: -apple-system, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; background: #f8f9fa; }
+.exercise { background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.exercise h3 { margin-top: 0; color: #333; }
+.exercise .question { font-size: 15px; color: #444; margin-bottom: 16px; }
+.exercise svg { display: block; margin: 0 auto 16px; }
+.exercise .options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.exercise .options span { background: #f0f4ff; padding: 8px 12px; border-radius: 6px; font-size: 14px; }
+h2 { color: #1a1a2e; margin-top: 40px; }
+.note { background: #fff3cd; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; }
+</style>
+</head>
+<body>
+<h1>几何练习题 SVG 配图样例</h1>
+<p class="note">以下是 AI 可能生成的几何练习题配图效果。SVG 代码可以直接嵌入 Flutter（flutter_svg）渲染。</p>
+
+<h2>样例 1：三角形内角和</h2>
+<div class="exercise">
+  <h3>简单</h3>
+  <div class="question">如图，在△ABC中，∠A = 50°，∠B = 65°，求∠C的度数。</div>
+  <svg width="240" height="180" viewBox="0 0 240 180">
+    <!-- 三角形 -->
+    <polygon points="120,20 30,160 210,160" fill="none" stroke="#333" stroke-width="2"/>
+    <!-- 顶点标注 -->
+    <text x="115" y="14" font-size="14" text-anchor="middle" fill="#1a73e8">A</text>
+    <text x="20" y="172" font-size="14" text-anchor="middle" fill="#1a73e8">B</text>
+    <text x="220" y="172" font-size="14" text-anchor="middle" fill="#1a73e8">C</text>
+    <!-- 角度标注 -->
+    <path d="M 110,40 A 20,20 0 0,0 130,40" fill="none" stroke="#e63946" stroke-width="1.5"/>
+    <text x="120" y="52" font-size="11" text-anchor="middle" fill="#e63946">50°</text>
+    <path d="M 48,148 A 18,18 0 0,1 38,155" fill="none" stroke="#e63946" stroke-width="1.5"/>
+    <text x="55" y="145" font-size="11" text-anchor="middle" fill="#e63946">65°</text>
+    <text x="195" y="148" font-size="11" text-anchor="middle" fill="#2d6a4f">?</text>
+  </svg>
+  <div class="options">
+    <span>A. 55°</span>
+    <span>B. 60°</span>
+    <span>C. 65°</span>
+    <span>D. 70°</span>
+  </div>
+</div>
+
+<h2>样例 2：半圆面积</h2>
+<div class="exercise">
+  <h3>同级</h3>
+  <div class="question">如图，半圆的直径 AB = 10 cm，求阴影部分（半圆）的面积。</div>
+  <svg width="260" height="160" viewBox="0 0 260 160">
+    <!-- 半圆 -->
+    <path d="M 50,130 A 80,80 0 0,1 210,130" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+    <!-- 直径 -->
+    <line x1="50" y1="130" x2="210" y2="130" stroke="#333" stroke-width="2"/>
+    <!-- 端点 -->
+    <circle cx="50" cy="130" r="3" fill="#333"/>
+    <circle cx="210" cy="130" r="3" fill="#333"/>
+    <!-- 标注 -->
+    <text x="40" y="145" font-size="13" text-anchor="middle" fill="#1a73e8">A</text>
+    <text x="220" y="145" font-size="13" text-anchor="middle" fill="#1a73e8">B</text>
+    <!-- 直径标注 -->
+    <text x="130" y="148" font-size="12" text-anchor="middle" fill="#e63946">10 cm</text>
+    <!-- 阴影标注 -->
+    <text x="130" y="95" font-size="12" text-anchor="middle" fill="#1565c0">阴影</text>
+  </svg>
+  <div class="options">
+    <span>A. 25π/2 cm²</span>
+    <span>B. 25π cm²</span>
+    <span>C. 50π cm²</span>
+    <span>D. 10π cm²</span>
+  </div>
+</div>
+
+<h2>样例 3：圆锥体积</h2>
+<div class="exercise">
+  <h3>提高</h3>
+  <div class="question">如图，圆锥的底面半径 r = 3 cm，高 h = 4 cm，求圆锥的体积。</div>
+  <svg width="220" height="200" viewBox="0 0 220 200">
+    <!-- 底面椭圆 -->
+    <ellipse cx="110" cy="170" rx="60" ry="18" fill="none" stroke="#333" stroke-width="2" stroke-dasharray="4,3"/>
+    <ellipse cx="110" cy="170" rx="60" ry="18" fill="none" stroke="#333" stroke-width="2" clip-path="url(#bottom-half)"/>
+    <!-- 侧面 -->
+    <line x1="110" y1="30" x2="50" y2="170" stroke="#333" stroke-width="2"/>
+    <line x1="110" y1="30" x2="170" y2="170" stroke="#333" stroke-width="2"/>
+    <!-- 顶点 -->
+    <circle cx="110" cy="30" r="2.5" fill="#333"/>
+    <!-- 高（虚线） -->
+    <line x1="110" y1="30" x2="110" y2="170" stroke="#e63946" stroke-width="1.5" stroke-dasharray="5,3"/>
+    <!-- 半径 -->
+    <line x1="110" y1="170" x2="170" y2="170" stroke="#2d6a4f" stroke-width="1.5"/>
+    <!-- 标注 -->
+    <text x="95" y="105" font-size="12" fill="#e63946">h=4</text>
+    <text x="135" y="185" font-size="12" fill="#2d6a4f">r=3</text>
+    <!-- 直角标记 -->
+    <rect x="110" y="160" width="8" height="8" fill="none" stroke="#e63946" stroke-width="1"/>
+  </svg>
+  <div class="options">
+    <span>A. 12π cm³</span>
+    <span>B. 36π cm³</span>
+    <span>C. 9π cm³</span>
+    <span>D. 48π cm³</span>
+  </div>
+</div>
+
+<h2>样例 4：等腰三角形底角</h2>
+<div class="exercise">
+  <h3>同级</h3>
+  <div class="question">如图，等腰三角形 ABC 中，AB = AC，∠A = 40°，求∠B。</div>
+  <svg width="220" height="180" viewBox="0 0 220 180">
+    <!-- 等腰三角形 -->
+    <polygon points="110,20 40,160 180,160" fill="none" stroke="#333" stroke-width="2"/>
+    <!-- 等边标记 -->
+    <line x1="72" y1="85" x2="78" y2="95" stroke="#2d6a4f" stroke-width="2"/>
+    <line x1="142" y1="85" x2="148" y2="95" stroke="#2d6a4f" stroke-width="2"/>
+    <!-- 顶点标注 -->
+    <text x="110" y="14" font-size="14" text-anchor="middle" fill="#1a73e8">A</text>
+    <text x="30" y="172" font-size="14" text-anchor="middle" fill="#1a73e8">B</text>
+    <text x="190" y="172" font-size="14" text-anchor="middle" fill="#1a73e8">C</text>
+    <!-- 角度 -->
+    <path d="M 100,42 A 16,16 0 0,0 120,42" fill="none" stroke="#e63946" stroke-width="1.5"/>
+    <text x="110" y="55" font-size="11" text-anchor="middle" fill="#e63946">40°</text>
+    <!-- 求解标注 -->
+    <text x="58" y="145" font-size="11" fill="#2d6a4f">?</text>
+  </svg>
+  <div class="options">
+    <span>A. 60°</span>
+    <span>B. 70°</span>
+    <span>C. 80°</span>
+    <span>D. 40°</span>
+  </div>
+</div>
+
+<h2>样例 5：组合图形面积（梯形 + 半圆）</h2>
+<div class="exercise">
+  <h3>提高</h3>
+  <div class="question">如图，梯形 ABCD 的上底 AD = 6，下底 BC = 10，高 = 4。以 AD 为直径画半圆，求阴影部分面积。</div>
+  <svg width="280" height="200" viewBox="0 0 280 200">
+    <!-- 梯形 -->
+    <polygon points="90,50 190,50 230,150 50,150" fill="#f5f5f5" stroke="#333" stroke-width="2"/>
+    <!-- 半圆（在上底） -->
+    <path d="M 90,50 A 50,50 0 0,0 190,50" fill="#bbdefb" stroke="#1565c0" stroke-width="2"/>
+    <!-- 顶点标注 -->
+    <text x="82" y="45" font-size="13" fill="#1a73e8">A</text>
+    <text x="195" y="45" font-size="13" fill="#1a73e8">D</text>
+    <text x="235" y="165" font-size="13" fill="#1a73e8">C</text>
+    <text x="38" y="165" font-size="13" fill="#1a73e8">B</text>
+    <!-- 尺寸标注 -->
+    <text x="140" y="68" font-size="11" text-anchor="middle" fill="#e63946">AD=6</text>
+    <text x="140" y="170" font-size="11" text-anchor="middle" fill="#e63946">BC=10</text>
+    <!-- 高 -->
+    <line x1="140" y1="50" x2="140" y2="150" stroke="#2d6a4f" stroke-width="1" stroke-dasharray="4,3"/>
+    <text x="148" y="105" font-size="11" fill="#2d6a4f">h=4</text>
+    <!-- 阴影标注 -->
+    <text x="140" y="28" font-size="11" text-anchor="middle" fill="#1565c0">阴影</text>
+  </svg>
+  <div class="options">
+    <span>A. 32 + 9π/2</span>
+    <span>B. 32 + 4.5π</span>
+    <span>C. 32 - 9π/2</span>
+    <span>D. 40 + 9π/2</span>
+  </div>
+</div>
+
+<hr>
+<h2>技术说明</h2>
+<ul>
+  <li><strong>SVG 尺寸</strong>：统一 220-280px 宽，适合手机屏幕</li>
+  <li><strong>配色方案</strong>：#333 轮廓、#1a73e8 顶点标注、#e63946 已知条件、#2d6a4f 求解目标</li>
+  <li><strong>Flutter 渲染</strong>：可用 flutter_svg 直接渲染，或用 CustomPainter 按结构化数据绘制</li>
+  <li><strong>AI 输出格式</strong>：让 AI 在 generatedExercises 中增加 "diagram" 字段，输出 SVG 字符串</li>
+</ul>
+</body>
+</html>

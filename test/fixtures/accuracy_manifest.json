@@ -1,0 +1,230 @@
+{
+  "manifestVersion": 2,
+  "purpose": "脱敏识别准确性与可靠性验收；expected 字段来自人工标注，不来自模型输出。",
+  "annotationStatus": "pending_human_annotation",
+  "cases": [
+    {
+      "id": "blurred_printed_single",
+      "category": "blurred",
+      "imagePath": "test/fixtures/accuracy/blurred_printed_single.png",
+      "subject": "math",
+      "pageType": "printedSingleQuestion",
+      "schoolStage": "unknown_pending_annotation",
+      "contentTags": ["printedText"],
+      "authorRoles": ["printedPrompt"],
+      "expected": {
+        "questionCount": 1,
+        "text": null,
+        "regions": [],
+        "formulaCount": 0,
+        "tableShape": null
+      },
+      "validation": "manual_required",
+      "notes": "采集后由人工补录题框和脱敏题干；不可用模型 confidence 代替标注。",
+      "captureMode": "printed",
+      "engine": "pending",
+      "engineVersion": "pending"
+    },
+    {
+      "id": "tilted_page",
+      "category": "tilted",
+      "imagePath": "test/fixtures/accuracy/tilted_page.png",
+      "subject": "math",
+      "pageType": "printedSingleQuestion",
+      "schoolStage": "unknown_pending_annotation",
+      "contentTags": ["printedText", "perspective"],
+      "authorRoles": ["printedPrompt"],
+      "expected": {
+        "questionCount": 1,
+        "text": null,
+        "regions": [],
+        "formulaCount": 0,
+        "tableShape": null
+      },
+      "validation": "manual_required",
+      "notes": "记录旋转后题框，边缘贴近时仍保留人工框。",
+      "captureMode": "printed",
+      "engine": "pending",
+      "engineVersion": "pending"
+    },
+    {
+      "id": "handwritten_single",
+      "category": "handwritten",
+      "imagePath": "test/fixtures/accuracy/handwritten_single.png",
+      "subject": "chinese",
+      "pageType": "handwrittenNotebook",
+      "schoolStage": "unknown_pending_annotation",
+      "contentTags": ["handwriting"],
+      "authorRoles": ["studentAnswer"],
+      "expected": {
+        "questionCount": 1,
+        "text": null,
+        "regions": [],
+        "formulaCount": 0,
+        "tableShape": null
+      },
+      "validation": "manual_required",
+      "notes": "手写 OCR 单列统计，不与印刷体准确率合并。",
+      "captureMode": "handwritten",
+      "engine": "pending",
+      "engineVersion": "pending"
+    },
+    {
+      "id": "formula_mixed",
+      "category": "formula",
+      "imagePath": "test/fixtures/accuracy/formula_mixed.png",
+      "subject": "math",
+      "pageType": "printedSingleQuestion",
+      "schoolStage": "unknown_pending_annotation",
+      "contentTags": ["printedText", "formula", "handwriting"],
+      "authorRoles": ["printedPrompt", "studentAnswer"],
+      "expected": {
+        "questionCount": 1,
+        "text": null,
+        "regions": [],
+        "formulaCount": null,
+        "tableShape": null
+      },
+      "validation": "manual_required",
+      "notes": "人工标注公式边界、成对标记和关键符号。",
+      "captureMode": "mixed",
+      "engine": "pending",
+      "engineVersion": "pending"
+    },
+    {
+      "id": "table_grid",
+      "category": "table",
+      "imagePath": "test/fixtures/accuracy/table_grid.png",
+      "subject": "physics",
+      "pageType": "printedSingleQuestion",
+      "schoolStage": "unknown_pending_annotation",
+      "contentTags": ["printedText", "table"],
+      "authorRoles": ["printedPrompt"],
+      "expected": {
+        "questionCount": 1,
+        "text": null,
+        "regions": [],
+        "formulaCount": 0,
+        "tableShape": {
+          "rows": null,
+          "columns": null
+        }
+      },
+      "validation": "manual_required",
+      "notes": "表格结构按行列及单元格文本复核，不接受静默转普通文本。",
+      "captureMode": "printed",
+      "engine": "pending",
+      "engineVersion": "pending"
+    },
+    {
+      "id": "multi_question_page",
+      "category": "multi_question",
+      "imagePath": "test/fixtures/accuracy/multi_question_page.png",
+      "subject": "math",
+      "pageType": "multiQuestionPage",
+      "schoolStage": "unknown_pending_annotation",
+      "contentTags": ["printedText", "multiQuestion"],
+      "authorRoles": ["printedPrompt"],
+      "expected": {
+        "questionCount": null,
+        "text": null,
+        "regions": [],
+        "formulaCount": null,
+        "tableShape": null
+      },
+      "validation": "manual_required",
+      "notes": "逐题标注 questionCount 与区域框，验证漏题和合并题。",
+      "captureMode": "printed",
+      "engine": "pending",
+      "engineVersion": "pending"
+    },
+    {
+      "id": "blank_image",
+      "category": "blank_or_invalid",
+      "imagePath": "test/fixtures/accuracy/blank_image.png",
+      "subject": "math",
+      "pageType": "unknown",
+      "schoolStage": "not_applicable",
+      "contentTags": ["blank"],
+      "authorRoles": [],
+      "expected": {
+        "questionCount": 0,
+        "text": "",
+        "regions": [],
+        "formulaCount": 0,
+        "tableShape": null
+      },
+      "validation": "automated_contract",
+      "notes": "应得到可解释的空白/不可识别状态，不得伪造题干。",
+      "captureMode": "printed",
+      "engine": "contract",
+      "engineVersion": "pending"
+    },
+    {
+      "id": "incomplete_ocr",
+      "category": "incomplete_ocr",
+      "imagePath": "test/fixtures/accuracy/incomplete_ocr.png",
+      "subject": "english",
+      "pageType": "printedSingleQuestion",
+      "schoolStage": "unknown_pending_annotation",
+      "contentTags": ["printedText", "truncated"],
+      "authorRoles": ["printedPrompt"],
+      "expected": {
+        "questionCount": 1,
+        "text": null,
+        "regions": [],
+        "formulaCount": 0,
+        "tableShape": null
+      },
+      "validation": "manual_required",
+      "notes": "缺字、截断和不确定字符必须进入校对，不计算为完整识别。",
+      "captureMode": "printed",
+      "engine": "pending",
+      "engineVersion": "pending"
+    },
+    {
+      "id": "ai_failure_recovery",
+      "category": "ai_failure",
+      "imagePath": null,
+      "subject": "math",
+      "pageType": "unknown",
+      "schoolStage": "not_applicable",
+      "contentTags": ["recoveryContract"],
+      "authorRoles": [],
+      "expected": {
+        "questionCount": 1,
+        "text": null,
+        "regions": [],
+        "formulaCount": 0,
+        "tableShape": null
+      },
+      "validation": "automated_contract",
+      "notes": "使用可控失败桩；验证最新 working 快照可恢复且状态可重试。",
+      "captureMode": "printed",
+      "engine": "contract",
+      "engineVersion": "pending"
+    },
+    {
+      "id": "duplicate_save",
+      "category": "duplicate_save",
+      "imagePath": null,
+      "subject": "math",
+      "pageType": "unknown",
+      "schoolStage": "not_applicable",
+      "contentTags": ["duplicateContract"],
+      "authorRoles": [],
+      "expected": {
+        "questionCount": 1,
+        "text": null,
+        "regions": [],
+        "formulaCount": 0,
+        "tableShape": null
+      },
+      "validation": "automated_contract",
+      "notes": "同 stable ID 重复保存应保持单行；另记录远程调用次数，不能只看 upsert。",
+      "captureMode": "printed",
+      "engine": "contract",
+      "engineVersion": "pending"
+    }
+  ]
+}
