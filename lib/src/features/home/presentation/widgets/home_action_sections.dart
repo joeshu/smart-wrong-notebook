@@ -94,6 +94,16 @@ class UnifiedActionPanel extends StatelessWidget {
         ),
     ];
 
+    final primaryAction = FilledButton.icon(
+      onPressed: recommendation.onTap,
+      icon: Icon(recommendation.icon, size: 18),
+      label: Text(recommendation.action),
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(0, AppControlSize.standard),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
+      ),
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -120,6 +130,7 @@ class UnifiedActionPanel extends StatelessWidget {
           action: recommendation.action,
           streakDays: plan.streakDays,
           onTap: recommendation.onTap,
+          primaryAction: primaryAction,
         ),
         if (secondary.isNotEmpty) ...<Widget>[
           const SizedBox(height: AppSpace.sm),
@@ -148,6 +159,7 @@ class BestNextActionCard extends StatelessWidget {
     required this.action,
     required this.streakDays,
     required this.onTap,
+    this.primaryAction,
   });
 
   final IconData icon;
@@ -157,6 +169,7 @@ class BestNextActionCard extends StatelessWidget {
   final String action;
   final int streakDays;
   final VoidCallback onTap;
+  final Widget? primaryAction;
 
   @override
   Widget build(BuildContext context) {
@@ -229,14 +242,15 @@ class BestNextActionCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpace.sm),
-              FilledButton(
-                onPressed: onTap,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  minimumSize: const Size(0, 38),
-                ),
-                child: Text(action),
-              ),
+              primaryAction ??
+                  FilledButton(
+                    onPressed: onTap,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      minimumSize: const Size(0, 38),
+                    ),
+                    child: Text(action),
+                  ),
             ],
           ),
         ),
