@@ -63,7 +63,7 @@ void main() {
     expect(source, contains('capture.pickMultipleFromGallery()'));
     expect(source, contains('capture.pickPdfFromGallery()'));
     expect(source, contains('pickFromCamera()'));
-    expect(source, contains('已拍摄 ${pages.length} 页'));
+    expect(source, contains(r'已拍摄 ${pages.length} 页'));
     expect(source, contains("router.go('/worksheet/import')"));
     expect(source, contains("config == null || config.baseUrl.isEmpty"));
     final saveDraft = source.indexOf(
