@@ -571,7 +571,7 @@ void main() {
     );
     expect(find.text('题号切换'), findsOneWidget);
     expect(find.text('当前第 2 题', skipOffstage: false), findsOneWidget);
-    expect(find.textContaining('解析失败', skipOffstage: false), findsOneWidget);
+    expect(find.textContaining('暂时无法完成解析', skipOffstage: false), findsOneWidget);
     expect(find.textContaining('第一题答案'), findsNothing);
     expect(find.textContaining('第一题步骤'), findsNothing);
     expect(find.text('第一题练习'), findsNothing);
@@ -714,7 +714,7 @@ void main() {
       ),
     );
     expect(find.text('当前第 2 题', skipOffstage: false), findsOneWidget);
-    expect(find.textContaining('解析失败', skipOffstage: false), findsNothing);
+    expect(find.textContaining('暂时无法完成解析', skipOffstage: false), findsNothing);
     expect(find.text('错误定位', skipOffstage: false), findsOneWidget);
     expect(find.textContaining('第二题答案', skipOffstage: false), findsOneWidget);
     expect(find.textContaining('第一题答案', skipOffstage: false), findsNothing);
