@@ -169,22 +169,21 @@ void main() {
     }
   }
 
-  Future<void> ensureReviewPane(WidgetTester tester) async {
-    await showReviewPane(tester);
-    expect(find.text('确认题干'), findsOneWidget);
-  }
-
   Future<void> scrollReviewTo(
     WidgetTester tester,
     Finder target,
   ) async {
+    await tester.scrollUntilVisible(
+      target,
+      240,
+      scrollable: find.byType(Scrollable).last,
+      maxScrolls: 12,
+    );
     expect(target, findsOneWidget);
-    await tester.ensureVisible(target);
-    await tester.pump();
   }
 
   Future<void> confirmRequiredFields(WidgetTester tester) async {
-    await ensureReviewPane(tester);
+    await showReviewPane(tester);
     for (final label in <String>['确认题干', '确认选项', '确认学生答案']) {
       final target = find.text(label);
       await scrollReviewTo(tester, target);
@@ -194,7 +193,7 @@ void main() {
   }
 
   Future<void> revealReviewActions(WidgetTester tester) async {
-    await ensureReviewPane(tester);
+    await showReviewPane(tester);
     await scrollReviewTo(tester, find.text('重新识别整题'));
   }
 
@@ -272,7 +271,7 @@ void main() {
       router: workbenchRouter(),
     );
 
-    await ensureReviewPane(tester);
+    await showReviewPane(tester);
     final draft = find.text('保留草稿');
     await tester.tap(draft);
     // The repository fails immediately; two explicit pumps avoid waiting on
