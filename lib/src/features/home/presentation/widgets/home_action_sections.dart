@@ -203,78 +203,56 @@ class BestNextActionCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(visual.cardRadius),
           child: Padding(
-          padding: const EdgeInsets.all(AppSpace.lg),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  gradient: visual.heroGradient,
-                  borderRadius: BorderRadius.circular(visual.controlRadius),
-                ),
-                child: Icon(icon, color: Colors.white, size: 23),
-              ),
-              const SizedBox(width: AppSpace.md),
-              Expanded(
-                child: Column(
+            padding: const EdgeInsets.all(AppSpace.lg),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 520;
+                final header = Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Wrap(
-                      spacing: AppSpace.xs,
-                      runSpacing: AppSpace.xs,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: <Widget>[
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        if (streakDays > 0)
-                          AppTag(
-                            label: '连续 $streakDays 天',
-                            useThemeTone: true,
-                            themeTone: AppTagTone.warning,
-                            fontSize: 11,
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpace.xs),
-                    Text(
-                      reason,
-                      style: TextStyle(
-                        fontSize: 13,
-                        height: 1.45,
-                        color: Theme.of(context).colorScheme.onSurface,
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        gradient: visual.heroGradient,
+                        borderRadius: BorderRadius.circular(visual.controlRadius),
                       ),
+                      child: Icon(icon, color: Colors.white, size: 23),
                     ),
-                    const SizedBox(height: AppSpace.sm),
-                    Text(
-                      meta,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    const SizedBox(width: AppSpace.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Wrap(
+                            spacing: AppSpace.xs,
+                            runSpacing: AppSpace.xs,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: <Widget>[
+                              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                              if (streakDays > 0)
+                                AppTag(label: '连续 $streakDays 天', useThemeTone: true, themeTone: AppTagTone.warning, fontSize: 11),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpace.xs),
+                          Text(reason, style: TextStyle(fontSize: 13, height: 1.45, color: Theme.of(context).colorScheme.onSurface)),
+                          const SizedBox(height: AppSpace.sm),
+                          Text(meta, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                        ],
                       ),
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(width: AppSpace.sm),
-              primaryAction ??
-                  FilledButton(
-                    onPressed: onTap,
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      minimumSize: const Size(0, 38),
-                    ),
-                    child: Text(action),
-                  ),
-            ],
+                );
+                final actionButton = SizedBox(
+                  width: compact ? double.infinity : null,
+                  child: primaryAction ?? FilledButton(onPressed: onTap, child: Text(action)),
+                );
+                return compact
+                    ? Column(children: <Widget>[header, const SizedBox(height: AppSpace.md), actionButton])
+                    : Row(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[Expanded(child: header), const SizedBox(width: AppSpace.md), actionButton]);
+              },
+            ),
           ),
-        ),
       ),
     ),
     );
