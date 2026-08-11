@@ -748,9 +748,9 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
               top: false,
               child: Container(
                 padding: const EdgeInsets.fromLTRB(
-                  AppSpace.xl,
+                  AppSpace.lg,
                   AppSpace.sm,
-                  AppSpace.xl,
+                  AppSpace.lg,
                   AppSpace.sm,
                 ),
                 decoration: BoxDecoration(
@@ -767,46 +767,61 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
                     constraints: const BoxConstraints(
                       maxWidth: AppContentWidth.standard,
                     ),
-                    child: requiresConfirmation
-                        ? FilledButton(
-                            onPressed: () => _openSaveFlow(record),
-                            style: FilledButton.styleFrom(
-                              minimumSize: const Size.fromHeight(
-                                AppControlSize.standard,
-                              ),
-                            ),
-                            child: const Text('保存为待确认'),
-                          )
-                        : Row(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final compact = constraints.maxWidth < 420;
+                        final primary = requiresConfirmation
+                            ? FilledButton.icon(
+                                onPressed: () => _openSaveFlow(record),
+                                icon: const Icon(CupertinoIcons.checkmark_shield),
+                                label: const Text('保存为待确认'),
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(AppControlSize.standard),
+                                ),
+                              )
+                            : FilledButton.icon(
+                                onPressed: () => _startPractice(record, activeCandidateAnalysis),
+                                icon: const Icon(CupertinoIcons.play_fill),
+                                label: const Text('开始练习'),
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(AppControlSize.standard),
+                                ),
+                              );
+                        if (requiresConfirmation || compact) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: <Widget>[
-                              Expanded(
-                                child: OutlinedButton(
+                              primary,
+                              if (!requiresConfirmation) ...<Widget>[
+                                const SizedBox(height: AppSpace.sm),
+                                OutlinedButton(
                                   onPressed: () => _openSaveFlow(record),
                                   style: OutlinedButton.styleFrom(
-                                    minimumSize: const Size.fromHeight(
-                                      AppControlSize.standard,
-                                    ),
+                                    minimumSize: const Size.fromHeight(AppControlSize.standard),
                                   ),
                                   child: const Text('保存到错题本'),
                                 ),
-                              ),
-                              const SizedBox(width: AppSpace.md),
-                              Expanded(
-                                child: FilledButton(
-                                  onPressed: () => _startPractice(
-                                    record,
-                                    activeCandidateAnalysis,
-                                  ),
-                                  style: FilledButton.styleFrom(
-                                    minimumSize: const Size.fromHeight(
-                                      AppControlSize.standard,
-                                    ),
-                                  ),
-                                  child: const Text('开始练习'),
-                                ),
-                              ),
+                              ],
                             ],
-                          ),
+                          );
+                        }
+                        return Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => _openSaveFlow(record),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(AppControlSize.standard),
+                                ),
+                                child: const Text('保存到错题本'),
+                              ),
+                            ),
+                            const SizedBox(width: AppSpace.sm),
+                            Expanded(child: primary),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
