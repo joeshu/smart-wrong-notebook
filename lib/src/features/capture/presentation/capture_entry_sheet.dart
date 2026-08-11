@@ -161,6 +161,25 @@ class _CaptureEntrySheetState extends ConsumerState<CaptureEntrySheet> {
                 ),
               )
             else ...<Widget>[
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '从一道题开始',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SizedBox(height: AppSpace.xs),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '拍下或选择一张题目截图，先框选范围，再交给 AI 分析。',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpace.md),
               if (pendingQuestion != null && !captureState.isTerminal) ...<Widget>[
                 _EntryOption(
                   icon: CupertinoIcons.play_circle_fill,
@@ -198,7 +217,26 @@ class _CaptureEntrySheetState extends ConsumerState<CaptureEntrySheet> {
                 description: '从相册选择图片',
                 onTap: () => _pickWithChoice(fromCamera: false),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpace.md),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '批量整理',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SizedBox(height: AppSpace.xs),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '试卷、PDF 或多页图片适合在这里一次处理。',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpace.xs),
               _EntryOption(
                 icon: CupertinoIcons.rectangle_stack,
                 iconColor: AppColors.success,
