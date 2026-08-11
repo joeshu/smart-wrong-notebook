@@ -22,8 +22,53 @@ class QuestionCorrectionScreen extends ConsumerStatefulWidget {
 class _QuestionCorrectionScreenState
     extends ConsumerState<QuestionCorrectionScreen> {
   ImageQualityResult? _qualityResult;
+  String? _qualityError;
   bool _warningDismissed = false;
   bool _detecting = false;
+
+  Future<void> _discardCapture() async {
+    final current = ref.read(currentQuestionProvider);
+    if (current == null) {
+      if (mounted) context.go('/add');
+      return;
+    }
+    final shouldDiscard = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('放弃本次录题？'),
+        content: const Text('原图和当前草稿都会删除，且无法恢复。'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('继续录题'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('放弃并删除'),
+          ),
+        ],
+      ),
+    );
+    if (shouldDiscard != true) return;
+    await ref.read(questionRepositoryProvider).delete(current.id);
+    await ref.read(captureServiceProvider).discardManagedImage(current.imagePath);
+    if (!mounted) return;
+    ref.read(captureSessionProvider.notifier).endSession();
+    context.go('/add');
+  }
+
+  Future<void> _retakeCapture() async {
+    final current = ref.read(currentQuestionProvider);
+    if (current == null) {
+      if (mounted) context.go('/add');
+      return;
+    }
+    await ref.read(questionRepositoryProvider).delete(current.id);
+    await ref.read(captureServiceProvider).discardManagedImage(current.imagePath);
+    if (!mounted) return;
+    ref.read(captureSessionProvider.notifier).endSession();
+    context.go('/add');
+  }
 
   void _beginRecognition() {
     final session = ref.read(captureSessionProvider.notifier);
@@ -45,10 +90,23 @@ class _QuestionCorrectionScreenState
     if (_detecting || _qualityResult != null) return;
     final current = ref.read(currentQuestionProvider);
     final imagePath = current?.imagePath;
-    if (imagePath == null || imagePath.isEmpty) return;
-    if (!File(imagePath).existsSync()) return;
+    if (imagePath == null || imagePath.isEmpty) {
+      if (mounted) {
+        setState(() => _qualityError = '未找到原图，请返回录题入口重新拍摄或选图。');
+      }
+      return;
+    }
+    if (!File(imagePath).existsSync()) {
+      if (mounted) {
+        setState(() => _qualityError = '原图文件已失效，请返回录题入口重新拍摄或选图。');
+      }
+      return;
+    }
 
-    setState(() => _detecting = true);
+    setState(() {
+      _detecting = true;
+      _qualityError = null;
+    });
     try {
       final result = await detectImageQuality(imagePath);
       if (!mounted) return;
@@ -56,9 +114,12 @@ class _QuestionCorrectionScreenState
         _qualityResult = result;
         _detecting = false;
       });
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      setState(() => _detecting = false);
+      setState(() {
+        _detecting = false;
+        _qualityError = '无法完成图片质量检查：$error';
+      });
     }
   }
 
@@ -75,8 +136,16 @@ class _QuestionCorrectionScreenState
         title: const Text('题目预览'),
         leading: IconButton(
           icon: const Icon(CupertinoIcons.chevron_left),
-          onPressed: () => context.go('/'),
+          tooltip: '返回录题入口',
+          onPressed: () => context.go('/add'),
         ),
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(CupertinoIcons.trash),
+            tooltip: '放弃本次录题',
+            onPressed: _discardCapture,
+          ),
+        ],
       ),
       body: AppPage(
         maxWidth: AppContentWidth.wide,
@@ -157,7 +226,9 @@ class _QuestionCorrectionScreenState
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
-                  onPressed: _qualityResult?.hasBlockingIssue == true
+                  onPressed: _detecting || _qualityResult == null ||
+                          _qualityError != null ||
+                          _qualityResult!.hasBlockingIssue
                       ? null
                       : () {
                           _beginRecognition();
@@ -181,6 +252,7 @@ class _QuestionCorrectionScreenState
     final result = _qualityResult;
     final scheme = Theme.of(context).colorScheme;
     final checking = _detecting || result == null;
+    final qualityUnavailable = _qualityError != null;
     final acceptable = result?.isAcceptable == true;
     final accent = checking
         ? scheme.primary
@@ -220,11 +292,13 @@ class _QuestionCorrectionScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        checking
-                            ? '正在检查拍摄质量'
-                            : acceptable
-                                ? '画面适合识别'
-                                : '建议先改善画面',
+                        qualityUnavailable
+                            ? '质量检查失败'
+                            : checking
+                                ? '正在检查拍摄质量'
+                                : acceptable
+                                    ? '画面适合识别'
+                                    : '建议先改善画面',
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
@@ -232,11 +306,13 @@ class _QuestionCorrectionScreenState
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        checking
-                            ? '正在检查清晰度、光线、页面完整性和隐私风险。'
-                            : acceptable
-                                ? '清晰度、光线与页面完整性均已通过。'
-                                : _warningSummary(result?.issues ?? const []),
+                        qualityUnavailable
+                            ? _qualityError!
+                            : checking
+                                ? '正在检查清晰度、光线、页面完整性和隐私风险。'
+                                : acceptable
+                                    ? '清晰度、光线与页面完整性均已通过。'
+                                    : _warningSummary(result?.issues ?? const []),
                         style: TextStyle(
                           fontSize: 12,
                           color: scheme.onSurfaceVariant,
@@ -246,17 +322,21 @@ class _QuestionCorrectionScreenState
                   ),
                 ),
                 AppTag(
-                  label: checking
-                      ? '检查中'
-                      : acceptable
-                          ? '可继续'
-                          : '需注意',
+                  label: qualityUnavailable
+                      ? '检查失败'
+                      : checking
+                          ? '检查中'
+                          : acceptable
+                              ? '可继续'
+                              : '需注意',
                   useThemeTone: true,
-                  themeTone: checking
-                      ? AppTagTone.primary
-                      : acceptable
-                          ? AppTagTone.success
-                          : AppTagTone.warning,
+                  themeTone: qualityUnavailable
+                      ? AppTagTone.warning
+                      : checking
+                          ? AppTagTone.primary
+                          : acceptable
+                              ? AppTagTone.success
+                              : AppTagTone.warning,
                 ),
               ],
             ),
@@ -329,7 +409,7 @@ class _QuestionCorrectionScreenState
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () => context.go('/'),
+                    onPressed: _retakeCapture,
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       minimumSize: const Size(0, 28),

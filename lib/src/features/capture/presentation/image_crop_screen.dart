@@ -20,6 +20,7 @@ class ImageCropScreen extends ConsumerStatefulWidget {
 
 class _ImageCropScreenState extends ConsumerState<ImageCropScreen> {
   bool _cropping = false;
+  bool _starting = false;
 
   @override
   void initState() {
@@ -29,11 +30,43 @@ class _ImageCropScreenState extends ConsumerState<ImageCropScreen> {
     });
   }
 
+  Future<void> _discardCapture() async {
+    final current = ref.read(currentQuestionProvider);
+    if (current == null) {
+      if (mounted) context.go('/add');
+      return;
+    }
+    final shouldDiscard = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('放弃本次录题？'),
+        content: const Text('原图和当前草稿都会删除，且无法恢复。'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('继续录题'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('放弃并删除'),
+          ),
+        ],
+      ),
+    );
+    if (shouldDiscard != true) return;
+    await ref.read(questionRepositoryProvider).delete(current.id);
+    await ref.read(captureServiceProvider).discardManagedImage(current.imagePath);
+    if (!mounted) return;
+    ref.read(captureSessionProvider.notifier).endSession();
+    context.go('/add');
+  }
+
   Future<void> _startCrop() async {
+    if (_starting || _cropping) return;
     final session = ref.read(captureSessionProvider.notifier);
     final current = session.restoreDraft() ?? ref.read(currentQuestionProvider);
     if (current == null) {
-      if (mounted) context.go('/');
+      if (mounted) context.go('/add');
       return;
     }
 
@@ -42,6 +75,8 @@ class _ImageCropScreenState extends ConsumerState<ImageCropScreen> {
       session.beginCropping();
     }
 
+    String? replacementPath;
+    _starting = true;
     setState(() => _cropping = true);
 
     try {
@@ -71,19 +106,21 @@ class _ImageCropScreenState extends ConsumerState<ImageCropScreen> {
       if (!mounted) return;
 
       if (croppedFile == null) {
-        // Cancelling the native cropper is an explicit cancellation. Do not
-        // silently submit the uncropped camera image for recognition.
-        await ref.read(questionRepositoryProvider).delete(current.id);
-        await ref.read(captureServiceProvider).discardManagedImage(current.imagePath);
-        session.cancel();
-        session.clearCurrentQuestion();
-        if (mounted) context.go('/add');
+        // 取消裁剪不等于放弃录题：返回预览页，保留草稿供用户重试或明确删除。
+        if (mounted) {
+          setState(() {
+            _cropping = false;
+            _starting = false;
+          });
+          context.go('/capture/correction');
+        }
         return;
       }
 
       // Save cropped image
       final storage = ref.read(imageStorageServiceProvider);
       final savedPath = await storage.saveImage(File(croppedFile.path));
+      replacementPath = savedPath;
       final fingerprint =
           await ImageFingerprintCodec.fromFile(File(savedPath));
       final perceptual =
@@ -119,6 +156,11 @@ class _ImageCropScreenState extends ConsumerState<ImageCropScreen> {
         context.go('/analysis/loading');
       }
     } catch (e) {
+      if (replacementPath != null) {
+        await ref
+            .read(captureServiceProvider)
+            .discardManagedImage(replacementPath!);
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('裁剪失败: $e')),
@@ -137,8 +179,16 @@ class _ImageCropScreenState extends ConsumerState<ImageCropScreen> {
         title: const Text('框选题目'),
         leading: IconButton(
           icon: const Icon(CupertinoIcons.chevron_left),
-          onPressed: () => context.go('/'),
+          tooltip: '返回预览',
+          onPressed: () => context.go('/capture/correction'),
         ),
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(CupertinoIcons.trash),
+            tooltip: '放弃本次录题',
+            onPressed: _cropping ? null : _discardCapture,
+          ),
+        ],
       ),
       body: SafeArea(
         child: Center(
