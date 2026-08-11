@@ -147,13 +147,8 @@ class _ImageCropScreenState extends ConsumerState<ImageCropScreen> {
       // cropped replacement succeeds.
       await ref.read(captureServiceProvider).discardManagedImage(current.imagePath);
 
-      if (ref.read(captureSessionProvider).phase ==
-          CaptureAnalysisPhase.cropping) {
-        session.beginRecognition();
-      }
-
       if (mounted) {
-        context.go('/analysis/loading');
+        context.go('/capture/correction');
       }
     } catch (e) {
       if (replacementPath != null) {
