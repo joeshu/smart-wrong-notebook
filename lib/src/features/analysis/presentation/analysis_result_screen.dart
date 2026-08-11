@@ -283,21 +283,50 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
           if (displayResult == null) ...<Widget>[
             const SizedBox(height: AppSpace.lg + 4),
             AppInfoSection(
-              icon: CupertinoIcons.exclamationmark_triangle,
+              icon: CupertinoIcons.exclamationmark_triangle_fill,
               iconColor: AppColors.danger,
               backgroundColor: AppColors.dangerContainerLight,
               borderColor: const Color(0xFFFECACA),
-              title: '第 ${activeCandidate?.order ?? 1}题解析失败',
+              title: '第 ${activeCandidate?.order ?? 1} 题暂时无法完成解析',
               titleColor: isDark ? AppColors.dangerLight : AppColors.dangerDark,
-              child: MathContentView(
-                activeCandidateAnalysis?.errorMessage?.isNotEmpty == true
-                    ? '已自动重试，仍未成功。该题暂不可保存，可返回重新解析。\n${activeCandidateAnalysis!.errorMessage}'
-                    : '已自动重试，仍未成功。该题暂不可保存，可返回重新解析。',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isDark ? AppColors.dangerLight : AppColors.dangerDark,
-                  height: 1.5,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  MathContentView(
+                    activeCandidateAnalysis?.errorMessage?.isNotEmpty == true
+                        ? '已自动重试，仍未成功。你可以重新分析，或返回修改原题后再试。\n${activeCandidateAnalysis!.errorMessage}'
+                        : '已自动重试，仍未成功。你可以重新分析，或返回修改原题后再试。',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? AppColors.dangerLight : AppColors.dangerDark,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpace.md),
+                  Wrap(
+                    spacing: AppSpace.sm,
+                    runSpacing: AppSpace.sm,
+                    children: <Widget>[
+                      FilledButton.icon(
+                        onPressed: activeCandidate == null ||
+                                activeCandidateAnalysis == null
+                            ? null
+                            : () => _retryAnalysisCandidate(
+                                  record,
+                                  activeCandidate,
+                                  activeCandidateAnalysis,
+                                ),
+                        icon: const Icon(CupertinoIcons.refresh, size: 18),
+                        label: const Text('重新分析'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => context.go('/capture/correction'),
+                        icon: const Icon(CupertinoIcons.pencil, size: 18),
+                        label: const Text('修改原题'),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
@@ -672,7 +701,7 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
               ...displayExercises.map((e) => Padding(
                     padding: const EdgeInsets.only(bottom: AppSpace.sm),
                     child: AppCard(
-                      padding: const EdgeInsets.all(AppSpace.md),
+                      padding: const EdgeInsets.all(AppSpace.lg),
                       borderRadius: AppRadius.medium,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -977,6 +1006,18 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('已更新${reviewFieldLabel(fieldName)}，请再次核对后确认')),
     );
+  }
+
+  Future<void> _retryAnalysisCandidate(
+    QuestionRecord record,
+    QuestionSplitCandidate candidate,
+    CandidateAnalysisSnapshot analysis,
+  ) async {
+    if (!mounted) return;
+    ref.read(captureSessionProvider.notifier).updateCurrentQuestion(
+          record.copyWith(contentStatus: ContentStatus.processing),
+        );
+    context.go('/analysis/loading');
   }
 
   Future<void> _retryReviewField(
