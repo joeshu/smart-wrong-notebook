@@ -122,6 +122,10 @@ void main() {
     required AiAnalysisService service,
     required GoRouter router,
   }) async {
+    tester.view.physicalSize = const Size(1024, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     final container = ProviderContainer(overrides: <Override>[
       questionRepositoryProvider.overrideWithValue(repository),
       aiAnalysisServiceProvider.overrideWithValue(service),
