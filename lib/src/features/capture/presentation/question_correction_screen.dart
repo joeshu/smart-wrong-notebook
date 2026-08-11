@@ -70,6 +70,16 @@ class _QuestionCorrectionScreenState
     context.go('/add');
   }
 
+  Future<void> _recheckQuality() async {
+    if (_detecting) return;
+    setState(() {
+      _qualityResult = null;
+      _qualityError = null;
+      _warningDismissed = false;
+    });
+    await _maybeDetectQuality();
+  }
+
   void _beginRecognition() {
     final session = ref.read(captureSessionProvider.notifier);
     final phase = ref.read(captureSessionProvider).phase;
@@ -321,6 +331,16 @@ class _QuestionCorrectionScreenState
                     ],
                   ),
                 ),
+                if (qualityUnavailable)
+                  TextButton(
+                    onPressed: _recheckQuality,
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: const Size(0, 28),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text('重新检查'),
+                  ),
                 AppTag(
                   label: qualityUnavailable
                       ? '检查失败'
