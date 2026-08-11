@@ -683,6 +683,7 @@ class _NotebookScreenState extends ConsumerState<NotebookScreen> {
                   onTap: () => showModalBottomSheet<void>(
                     context: context,
                     isScrollControlled: true,
+                    showDragHandle: true,
                     builder: (_) => _AdvancedFilterSheet(
                       sources: sources,
                       stages: stages,
@@ -1793,6 +1794,7 @@ String _sortFilterLabel(QuestionSort value) => switch (value) {
 
 class _AdvancedFilterSheet extends ConsumerWidget {
   const _AdvancedFilterSheet({
+    super.key,
     required this.sources,
     required this.stages,
     required this.onClear,
