@@ -143,7 +143,28 @@ class UnifiedActionPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpace.xs),
-          ...secondary,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 520 || secondary.length == 1) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: secondary
+                      .expand((item) => <Widget>[item, const SizedBox(height: AppSpace.sm)])
+                      .toList()
+                    ..removeLast(),
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  for (var index = 0; index < secondary.length; index++) ...<Widget>[
+                    if (index > 0) const SizedBox(width: AppSpace.sm),
+                    Expanded(child: secondary[index]),
+                  ],
+                ],
+              );
+            },
+          ),
         ],
       ],
     );
