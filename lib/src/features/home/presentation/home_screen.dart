@@ -65,6 +65,32 @@ class HomeScreen extends ConsumerWidget {
         false;
 
     final visual = AppVisualTokens.of(context);
+    final todayPlan = todayPlanAsync.valueOrNull;
+    final pendingRecognition = questionsAsync.valueOrNull == null
+        ? 0
+        : _countPendingRecognition(
+            questionsAsync.valueOrNull!,
+            worksheetSession,
+          );
+    final heroReviewFirst = (todayPlan?.dueCount ?? 0) > 0;
+    final heroContinueRecognition = !heroReviewFirst && pendingRecognition > 0;
+    final heroActionLabel = heroReviewFirst
+        ? '开始复习'
+        : heroContinueRecognition
+            ? '继续确认'
+            : AppStrings.homeCapture;
+    final heroActionIcon = heroReviewFirst
+        ? CupertinoIcons.play_circle_fill
+        : heroContinueRecognition
+            ? CupertinoIcons.text_badge_checkmark
+            : CupertinoIcons.camera_fill;
+    final heroAction = heroReviewFirst
+        ? () => context.go('/review')
+        : heroContinueRecognition
+            ? () => context.go(
+                  hasPendingBatch ? '/worksheet/import' : '/notebook',
+                )
+            : () => context.go('/add');
 
     return AppPage(
       maxWidth: AppContentWidth.wide,
@@ -78,20 +104,14 @@ class HomeScreen extends ConsumerWidget {
             header: _HomeHeroHeader(style: visual.style),
             footer: _HomeHeroFooter(style: visual.style),
             action: AppGradientButton(
-              label: AppStrings.homeCapture,
-              icon: CupertinoIcons.camera_fill,
-              onTap: () => context.go('/add'),
+              label: heroActionLabel,
+              icon: heroActionIcon,
+              onTap: heroAction,
             ),
           ),
           const SizedBox(height: AppSpace.md),
-          const AppCard(
-            entrance: false,
-            child: AppTaskFlow(
-              steps: <String>['拍一道错题', '确认识别', '查看错误定位', '开始练习'],
-              currentStep: 0,
-            ),
-          ),
-          const SizedBox(height: AppSpace.md),
+          // 首屏只保留 Hero、今日主行动和关键指标，流程说明移至录题页，
+          // 避免用户打开首页后被静态说明卡分散注意力。
           // Phase 8-1：统一今日行动面板。
           // 优先级：复习 → 未完成识别 → 添加新错题；卡片可同时显示，
           // 按优先级从上到下排列；全部为空时显示空状态引导。

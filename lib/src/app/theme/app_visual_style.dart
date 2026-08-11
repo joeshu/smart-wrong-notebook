@@ -36,11 +36,11 @@ extension AppVisualStyleX on AppVisualStyle {
       };
 
   double get cardRadius => switch (this) {
-        AppVisualStyle.academic => 18,
-        AppVisualStyle.paper => 10,
-        AppVisualStyle.aurora => 24,
-        AppVisualStyle.forest => 16,
-      };
+    AppVisualStyle.academic => 24,
+    AppVisualStyle.paper => 18,
+    AppVisualStyle.aurora => 24,
+    AppVisualStyle.forest => 20,
+  };
 
   double get controlRadius => switch (this) {
         AppVisualStyle.academic => 14,
