@@ -91,6 +91,25 @@ void main() {
       expect(find.text('相册'), findsOneWidget);
     });
 
+    testWidgets('core screens render in dark mode without overflow', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(ProviderScope(
+        overrides: [_repoOverride, _settingsOverride],
+        child: MaterialApp(
+          theme: ThemeData.light(),
+          darkTheme: ThemeData.dark(),
+          themeMode: ThemeMode.dark,
+          home: const HomeScreen(),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.byType(HomeScreen), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('settings screen shows all required entries', (tester) async {
       await tester.pumpWidget(ProviderScope(
         overrides: [_repoOverride, _settingsOverride],
