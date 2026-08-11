@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -105,7 +106,7 @@ void main() {
 
   QuestionRecord reviewRecord() => QuestionRecord.draft(
         id: 'phase6-review',
-        imagePath: '/tmp/missing-phase6-image.jpg',
+        imagePath: File('assets/icon/app_icon.png').absolute.path,
         subject: Subject.math,
         recognizedText: '旧题干\nA. 旧选项\nB. 另一选项',
       ).copyWith(

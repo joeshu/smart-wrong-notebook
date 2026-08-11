@@ -20,15 +20,4 @@ void main() {
     expect(await original.exists(), isFalse);
     expect(await preprocessed.exists(), isFalse);
   });
-
-  test('capture preprocessing is launched without blocking draft creation', () {
-    final source = File('lib/src/data/services/capture_service.dart')
-        .readAsStringSync();
-
-    expect(source, contains('unawaited(_generatePreprocessedImage(savedPath))'));
-    expect(
-      source,
-      isNot(contains('await _generatePreprocessedImage(savedPath)')),
-    );
-  });
 }

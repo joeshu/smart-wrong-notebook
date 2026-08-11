@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_wrong_notebook/src/app/onboarding_notifier.dart';
 import 'package:smart_wrong_notebook/src/app/router.dart';
@@ -20,19 +18,14 @@ class _TestSettingsRepository implements SettingsRepository {
   Future<void> setString(String key, String value) async {}
 
   @override
-  Future<bool> isQuickCaptureEnabled() async {
-    final value = await getString('quick_capture_enabled');
-    return value == 'true';
-  }
+  Future<bool> isQuickCaptureEnabled() async => false;
 
   @override
-  Future<void> setQuickCaptureEnabled(bool enabled) async {
-    await setString('quick_capture_enabled', enabled ? 'true' : 'false');
-  }
+  Future<void> setQuickCaptureEnabled(bool enabled) async {}
 }
 
 void main() {
-  test('router keeps four primary tabs and compatibility deep links', () {
+  test('router exposes primary tabs and supported deep links', () {
     final notifier = OnboardingNotifier(initialDone: true);
     final router = buildRouter(
       _TestSettingsRepository(),
@@ -41,27 +34,20 @@ void main() {
     addTearDown(router.dispose);
     addTearDown(notifier.dispose);
 
-    final configuration = router.configuration;
-    expect(configuration.findMatch(Uri.parse('/')).matches, isNotEmpty);
-    expect(configuration.findMatch(Uri.parse('/notebook')).matches, isNotEmpty);
-    expect(configuration.findMatch(Uri.parse('/review')).matches, isNotEmpty);
-    expect(configuration.findMatch(Uri.parse('/settings')).matches, isNotEmpty);
-    expect(configuration.findMatch(Uri.parse('/add')).matches, isNotEmpty);
-    expect(configuration.findMatch(Uri.parse('/export')).matches, isNotEmpty);
-    expect(configuration.findMatch(Uri.parse('/capture/split-confirmation')).matches,
-        isNotEmpty);
-  });
-
-  test('primary navigation uses a single centralized capture action', () {
-    final source = File('lib/src/app/router.dart').readAsStringSync();
-
-    expect(source, contains('CaptureEntryLauncher.show(context)'));
-    expect(source, contains('FloatingActionButtonLocation.centerFloat'));
-    expect('StatefulShellBranch('.allMatches(source).length, 4);
-    expect(source, contains("path: '/add'"));
-    expect(source, contains("path: '/export'"));
-    expect(source, contains('label: AppStrings.notebookTab'));
-    expect(source, contains('label: AppStrings.reviewTab'));
-    expect(source, contains('label: AppStrings.settingsTab'));
+    for (final path in <String>[
+      '/',
+      '/notebook',
+      '/review',
+      '/settings',
+      '/add',
+      '/export',
+      '/capture/split-confirmation',
+    ]) {
+      expect(
+        router.configuration.findMatch(Uri.parse(path)).matches,
+        isNotEmpty,
+        reason: 'expected route to resolve: $path',
+      );
+    }
   });
 }

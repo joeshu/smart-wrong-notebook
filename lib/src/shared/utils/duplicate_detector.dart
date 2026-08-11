@@ -139,7 +139,7 @@ class DuplicateDetector {
   double _textSimilarity(String a, String b) {
     final na = _normalizeText(a);
     final nb = _normalizeText(b);
-    if (na.isEmpty && nb.isEmpty) return 1.0;
+    if (na.isEmpty && nb.isEmpty) return 0.0;
     if (na.isEmpty || nb.isEmpty) return 0.0;
 
     if (na.length < 5 && nb.length < 5) {
