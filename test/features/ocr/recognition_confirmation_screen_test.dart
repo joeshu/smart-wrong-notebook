@@ -122,7 +122,7 @@ void main() {
     required AiAnalysisService service,
     required GoRouter router,
   }) async {
-    tester.view.physicalSize = const Size(1024, 900);
+    tester.view.physicalSize = const Size(800, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -162,12 +162,16 @@ void main() {
       );
 
   Future<void> showReviewPane(WidgetTester tester) async {
-    final segmentedFinder = find.byType(SegmentedButton<bool>);
-    if (segmentedFinder.evaluate().isNotEmpty) {
-      final segmented = tester.widget<SegmentedButton<bool>>(segmentedFinder);
-      segmented.onSelectionChanged?.call(<bool>{false});
-      await tester.pumpAndSettle();
+    final reviewTab = find.text('识别文字');
+    if (reviewTab.evaluate().isNotEmpty) {
+      await tester.tap(reviewTab);
+      await tester.pump();
     }
+  }
+
+  Future<void> ensureReviewPane(WidgetTester tester) async {
+    await showReviewPane(tester);
+    expect(find.text('确认题干'), findsOneWidget);
   }
 
   Future<void> scrollReviewTo(
@@ -180,7 +184,7 @@ void main() {
   }
 
   Future<void> confirmRequiredFields(WidgetTester tester) async {
-    await showReviewPane(tester);
+    await ensureReviewPane(tester);
     for (final label in <String>['确认题干', '确认选项', '确认学生答案']) {
       final target = find.text(label);
       await scrollReviewTo(tester, target);
@@ -190,7 +194,7 @@ void main() {
   }
 
   Future<void> revealReviewActions(WidgetTester tester) async {
-    await showReviewPane(tester);
+    await ensureReviewPane(tester);
     await scrollReviewTo(tester, find.text('重新识别整题'));
   }
 
@@ -268,10 +272,13 @@ void main() {
       router: workbenchRouter(),
     );
 
-    await showReviewPane(tester);
+    await ensureReviewPane(tester);
     final draft = find.text('保留草稿');
     await tester.tap(draft);
-    await tester.pumpAndSettle();
+    // The repository fails immediately; two explicit pumps avoid waiting on
+    // unrelated image/route settling animations in the review pane.
+    await tester.pump();
+    await tester.pump();
     await revealReviewActions(tester);
     final error = find.textContaining('保留草稿失败');
     await scrollReviewTo(tester, error);
