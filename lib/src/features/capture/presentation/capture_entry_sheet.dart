@@ -547,6 +547,7 @@ class _EntryOption extends StatelessWidget {
     required this.label,
     required this.description,
     required this.onTap,
+    this.prominent = false,
   });
 
   final IconData icon;
@@ -555,22 +556,37 @@ class _EntryOption extends StatelessWidget {
   final String label;
   final String description;
   final VoidCallback onTap;
+  final bool prominent;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: colorScheme.outlineVariant),
-        ),
-        child: Row(
+    final radius = BorderRadius.circular(prominent ? AppRadius.large : AppRadius.medium);
+    final background = prominent
+        ? colorScheme.surfaceContainerLow
+        : colorScheme.surface;
+
+    return Semantics(
+      button: true,
+      label: '$label，$description',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 72),
+          padding: EdgeInsets.all(prominent ? AppSpace.lg : 14),
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: radius,
+            border: Border.all(
+              color: prominent
+                  ? iconColor.withValues(alpha: 0.24)
+                  : colorScheme.outlineVariant,
+              width: prominent ? 1.2 : 1,
+            ),
+          ),
+          child: Row(
           children: <Widget>[
             Container(
               width: 44,
@@ -604,6 +620,7 @@ class _EntryOption extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }
