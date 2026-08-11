@@ -107,8 +107,6 @@ GoRouter _practiceRouter() {
 }
 
 void main() {
-  // TODO: Fix these tests to match actual UI
-  // The exercise options are displayed differently than expected
 
   testWidgets('displays first exercise on load', (tester) async {
     final repo = InMemoryQuestionRepository();
