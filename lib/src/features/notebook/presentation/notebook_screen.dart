@@ -819,14 +819,37 @@ class _NotebookScreenState extends ConsumerState<NotebookScreen> {
             SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: Row(children: <Widget>[
-          Expanded(child: OutlinedButton.icon(onPressed: _selectedQuestionIds.isEmpty ? null : () => _deleteSelected(context, ref), icon: const Icon(CupertinoIcons.trash), label: const Text('删除'))),
-          const SizedBox(width: 8),
-          Expanded(child: FilledButton.icon(onPressed: _selectedQuestionIds.isEmpty ? null : () => _openWorksheet(context, ref), icon: const Icon(CupertinoIcons.doc_text), label: const Text('组卷'))),
-          const SizedBox(width: 8),
-          Expanded(child: FilledButton.tonalIcon(onPressed: _selectedQuestionIds.isEmpty ? null : () => _exportSelected(context), icon: const Icon(CupertinoIcons.arrow_up_doc), label: const Text('导出'))),
-        ]),
+                padding: const EdgeInsets.fromLTRB(AppSpace.lg, AppSpace.sm, AppSpace.lg, AppSpace.lg),
+                child: AppCard(
+                  padding: const EdgeInsets.all(AppSpace.sm),
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _selectedQuestionIds.isEmpty ? null : () => _deleteSelected(context, ref),
+                          icon: const Icon(CupertinoIcons.trash),
+                          label: const Text('删除'),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpace.sm),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: _selectedQuestionIds.isEmpty ? null : () => _openWorksheet(context, ref),
+                          icon: const Icon(CupertinoIcons.doc_text),
+                          label: const Text('组卷'),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpace.sm),
+                      Expanded(
+                        child: FilledButton.tonalIcon(
+                          onPressed: _selectedQuestionIds.isEmpty ? null : () => _exportSelected(context),
+                          icon: const Icon(CupertinoIcons.arrow_up_doc),
+                          label: const Text('导出'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
         ],
@@ -992,17 +1015,28 @@ class _ArchiveActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final isUrgent = action.label == '重新分析';
+    final isReview = action.label == '开始复习';
+    final background = isUrgent
+        ? scheme.errorContainer.withValues(alpha: .78)
+        : isReview
+            ? AppColors.accentAmber.withValues(alpha: .18)
+            : scheme.primaryContainer.withValues(alpha: .78);
+    final foreground = isUrgent
+        ? scheme.onErrorContainer
+        : isReview
+            ? AppColors.accentAmber
+            : scheme.onPrimaryContainer;
     return Padding(
       padding: const EdgeInsets.only(left: AppSpace.xs),
       child: TextButton.icon(
         onPressed: action.onTap,
         style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          minimumSize: const Size(0, 30),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          minimumSize: const Size(0, 32),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          backgroundColor: scheme.primaryContainer.withValues(alpha: .68),
-          foregroundColor: scheme.onPrimaryContainer,
+          backgroundColor: background,
+          foregroundColor: foreground,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(999),
           ),
