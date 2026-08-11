@@ -864,54 +864,57 @@ class _NotebookArchiveOverview extends StatelessWidget {
         AppSpace.xs,
       ),
       child: AppCard(
-        padding: const EdgeInsets.all(AppSpace.md),
-        child: Row(
-          children: <Widget>[
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                gradient: visual.heroGradient,
-                borderRadius: BorderRadius.circular(visual.controlRadius),
-              ),
-              child: Icon(
-                switch (visual.style) {
-                  AppVisualStyle.academic => CupertinoIcons.chart_bar_square,
-                  AppVisualStyle.paper => CupertinoIcons.book,
-                  AppVisualStyle.aurora => CupertinoIcons.scope,
-                  AppVisualStyle.forest => CupertinoIcons.tree,
-                },
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: AppSpace.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(title, style: Theme.of(context).textTheme.titleSmall),
-                  const SizedBox(height: 2),
-                  Text(
-                    helper,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11,
-                      height: 1.35,
-                      color: scheme.onSurfaceVariant,
-                    ),
+        padding: const EdgeInsets.all(AppSpace.lg),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 520;
+            final summary = Row(
+              children: <Widget>[
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    gradient: visual.heroGradient,
+                    borderRadius: BorderRadius.circular(visual.controlRadius),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppSpace.sm),
-            _ArchiveCount(value: questions.length, label: '全部'),
-            const SizedBox(width: AppSpace.sm),
-            _ArchiveCount(value: attentionCount, label: '待处理'),
-            const SizedBox(width: AppSpace.sm),
-            _ArchiveCount(value: dueCount, label: '到期'),
-          ],
+                  child: Icon(
+                    switch (visual.style) {
+                      AppVisualStyle.academic => CupertinoIcons.chart_bar_square,
+                      AppVisualStyle.paper => CupertinoIcons.book,
+                      AppVisualStyle.aurora => CupertinoIcons.scope,
+                      AppVisualStyle.forest => CupertinoIcons.tree,
+                    },
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: AppSpace.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(title, style: Theme.of(context).textTheme.titleSmall),
+                      const SizedBox(height: 2),
+                      Text(helper, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, height: 1.35, color: scheme.onSurfaceVariant)),
+                    ],
+                  ),
+                ),
+              ],
+            );
+            final counts = Row(
+              mainAxisAlignment: compact ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
+              children: <Widget>[
+                _ArchiveCount(value: questions.length, label: '全部'),
+                const SizedBox(width: AppSpace.lg),
+                _ArchiveCount(value: attentionCount, label: '待处理'),
+                const SizedBox(width: AppSpace.lg),
+                _ArchiveCount(value: dueCount, label: '到期'),
+              ],
+            );
+            return compact
+                ? Column(children: <Widget>[summary, const SizedBox(height: AppSpace.md), counts])
+                : Row(children: <Widget>[Expanded(child: summary), const SizedBox(width: AppSpace.lg), counts]);
+          },
         ),
       ),
     );
@@ -1119,7 +1122,7 @@ class _QuestionCard extends StatelessWidget {
             child: Opacity(
               opacity: isArchived ? 0.55 : 1.0,
               child: AppCard(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpace.md, vertical: AppSpace.sm + 2),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpace.lg, vertical: AppSpace.md),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
@@ -1129,7 +1132,7 @@ class _QuestionCard extends StatelessWidget {
                     ],
                     Container(
                       width: 4,
-                      height: 88,
+                      constraints: const BoxConstraints(minHeight: 96),
                       decoration: BoxDecoration(
                         color: _priorityColor(context, displayStatus),
                         borderRadius: BorderRadius.circular(999),
