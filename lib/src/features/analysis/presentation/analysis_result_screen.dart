@@ -309,10 +309,23 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
               consistencyNotice: _consistencyNotice(displayResult),
             ),
             const SizedBox(height: AppSpace.md),
-            AnalysisLayerHeader(
-              title: '展开学习',
-              subtitle: '以下内容默认收起，需要时再查看完整依据。',
-              icon: CupertinoIcons.book,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                Expanded(
+                  child: AnalysisLayerHeader(
+                    title: '展开学习',
+                    subtitle: '完整依据按需展开，先看结论，再深入复盘。',
+                    icon: CupertinoIcons.book,
+                  ),
+                ),
+                AppTag(
+                  label: '可复盘',
+                  useThemeTone: true,
+                  themeTone: AppTagTone.success,
+                  fontSize: 11,
+                ),
+              ],
             ),
             const SizedBox(height: AppSpace.sm),
             StyledInsightSection(

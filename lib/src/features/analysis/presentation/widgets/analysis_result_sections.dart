@@ -59,37 +59,44 @@ class CandidateSwitcherCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpace.md + 2),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: splitResult.candidates.asMap().entries.map((entry) {
-                final candidate = entry.value;
-                final isActive = entry.key == safeCandidateIndex;
-                return Padding(
-                  padding: const EdgeInsets.only(right: AppSpace.sm),
-                  child: ChoiceChip(
-                    key: ValueKey<String>('candidate-chip-${candidate.order}'),
-                    label: Text('第 ${candidate.order} 题'),
-                    selected: isActive,
-                    onSelected: (_) => onSelected(entry.key),
-                    labelStyle: TextStyle(
-                      fontSize: 14,
-                      color: isActive
-                          ? colorScheme.onPrimary
-                          : colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 460;
+              final chips = Row(
+                mainAxisSize: MainAxisSize.min,
+                children: splitResult.candidates.asMap().entries.map((entry) {
+                  final candidate = entry.value;
+                  final isActive = entry.key == safeCandidateIndex;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: AppSpace.sm),
+                    child: ChoiceChip(
+                      key: ValueKey<String>('candidate-chip-${candidate.order}'),
+                      label: Text('第 ${candidate.order} 题'),
+                      selected: isActive,
+                      onSelected: (_) => onSelected(entry.key),
+                      labelStyle: TextStyle(
+                        fontSize: 14,
+                        color: isActive
+                            ? colorScheme.onPrimary
+                            : colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      selectedColor: colorScheme.primary,
+                      backgroundColor: colorScheme.surface,
+                      side: BorderSide(
+                        color: isActive
+                            ? colorScheme.primary
+                            : colorScheme.outlineVariant,
+                      ),
                     ),
-                    selectedColor: colorScheme.primary,
-                    backgroundColor: colorScheme.surface,
-                    side: BorderSide(
-                      color: isActive
-                          ? colorScheme.primary
-                          : colorScheme.outlineVariant,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
+                  );
+                }).toList(),
+              );
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: chips,
+              );
+            },
           ),
         ],
       ),
@@ -121,7 +128,7 @@ class ReviewRequiredBanner extends StatelessWidget {
       label: 'AI 结果待人工确认，$score',
       child: Container(
         key: const ValueKey<String>('analysis-review-required-banner'),
-        padding: const EdgeInsets.all(AppSpace.md),
+        padding: const EdgeInsets.all(AppSpace.lg),
         decoration: BoxDecoration(
           color: Theme.of(context).brightness == Brightness.dark
               ? AppColors.warning.withValues(alpha: 0.16)
