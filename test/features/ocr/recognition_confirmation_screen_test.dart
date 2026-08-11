@@ -165,24 +165,28 @@ void main() {
     }
   }
 
+  Future<void> scrollReviewTo(
+    WidgetTester tester,
+    Finder target,
+  ) async {
+    expect(target, findsOneWidget);
+    await tester.ensureVisible(target);
+    await tester.pump();
+  }
+
   Future<void> confirmRequiredFields(WidgetTester tester) async {
     await showReviewPane(tester);
     for (final label in <String>['确认题干', '确认选项', '确认学生答案']) {
-      await tester.scrollUntilVisible(
-        find.text(label),
-        200,
-        scrollable: find.byType(Scrollable).last,
-      );
-      await tester.pump();
-      await tester.tap(find.text(label));
+      final target = find.text(label);
+      await scrollReviewTo(tester, target);
+      await tester.tap(target);
       await tester.pump();
     }
   }
 
   Future<void> revealReviewActions(WidgetTester tester) async {
-    final action = find.text('重新识别整题');
-    await tester.scrollUntilVisible(action, 200, scrollable: find.byType(Scrollable).last);
-    await tester.pump();
+    await showReviewPane(tester);
+    await scrollReviewTo(tester, find.text('重新识别整题'));
   }
 
   FilterChip confirmationChip(WidgetTester tester, String label) =>
@@ -264,13 +268,9 @@ void main() {
     await tester.tap(draft);
     await tester.pumpAndSettle();
     await revealReviewActions(tester);
-    await tester.scrollUntilVisible(
-      find.textContaining('保留草稿失败'),
-      200,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.pump();
-    expect(find.textContaining('保留草稿失败'), findsOneWidget);
+    final error = find.textContaining('保留草稿失败');
+    await scrollReviewTo(tester, error);
+    expect(error, findsOneWidget);
     expect(repository.saveAttempts, 1);
 
     await tester.tap(draft);

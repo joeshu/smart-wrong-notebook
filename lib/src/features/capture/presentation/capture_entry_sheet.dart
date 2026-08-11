@@ -288,7 +288,6 @@ class _CaptureEntrySheetState extends ConsumerState<CaptureEntrySheet> {
   }
 
   Future<void> _pickWithChoice({required bool fromCamera}) async {
-    final router = GoRouter.of(context);
     final session = ref.read(captureSessionProvider.notifier);
     final sessionState = ref.read(captureSessionProvider);
     if (sessionState.imagePath != null && !sessionState.isTerminal) {
@@ -296,6 +295,7 @@ class _CaptureEntrySheetState extends ConsumerState<CaptureEntrySheet> {
       return;
     }
     if (sessionState.isTerminal) session.endSession();
+    final router = GoRouter.of(context);
     setState(() {
       _isLoading = true;
       _loadingMessage = fromCamera ? '正在打开相机...' : '正在打开相册...';
