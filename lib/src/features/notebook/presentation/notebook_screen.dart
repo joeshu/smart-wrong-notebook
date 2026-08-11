@@ -760,15 +760,40 @@ class _NotebookScreenState extends ConsumerState<NotebookScreen> {
                     ? questions
                     : questions.where((q) => !q.isArchived).toList();
                 if (visibleQuestions.isEmpty) {
+                  final hasSearch = ref.read(searchQueryProvider).trim().isNotEmpty;
+                  final hasFilters = activeFilterLabels.isNotEmpty;
                   return AppEmptyState(
-                    icon: CupertinoIcons.question,
-                    title: AppStrings.notebookEmptyTitle,
-                    description: AppStrings.notebookEmptySubtitle,
-                    action: FilledButton.icon(
-                      onPressed: () => CaptureEntryLauncher.show(context),
-                      icon: const Icon(CupertinoIcons.add),
-                      label: const Text(AppStrings.homeCapture),
-                    ),
+                    icon: hasSearch
+                        ? CupertinoIcons.search
+                        : hasFilters
+                            ? CupertinoIcons.line_horizontal_3_decrease_circle
+                            : CupertinoIcons.question,
+                    title: hasSearch
+                        ? '没有匹配的错题'
+                        : hasFilters
+                            ? '当前筛选下暂无错题'
+                            : AppStrings.notebookEmptyTitle,
+                    description: hasSearch
+                        ? '换一个关键词，或清除搜索后继续浏览。'
+                        : hasFilters
+                            ? '可以放宽筛选条件，或查看全部错题。'
+                            : AppStrings.notebookEmptySubtitle,
+                    action: hasSearch || hasFilters
+                        ? OutlinedButton.icon(
+                            onPressed: () {
+                              _searchController.clear();
+                              ref.read(searchQueryProvider.notifier).state = '';
+                              _clearFilters(ref);
+                              setState(() {});
+                            },
+                            icon: const Icon(CupertinoIcons.xmark_circle),
+                            label: const Text('清除条件'),
+                          )
+                        : FilledButton.icon(
+                            onPressed: () => CaptureEntryLauncher.show(context),
+                            icon: const Icon(CupertinoIcons.add),
+                            label: const Text(AppStrings.homeCapture),
+                          ),
                   );
                 }
                 final hasPracticeAction =
@@ -1830,25 +1855,35 @@ class _ActiveFilterSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
+      padding: const EdgeInsets.fromLTRB(AppSpace.lg, AppSpace.sm, AppSpace.lg, 0),
       child: Row(
         children: <Widget>[
-          const Icon(CupertinoIcons.line_horizontal_3_decrease_circle,
-              size: 16),
-          const SizedBox(width: 6),
+          Icon(CupertinoIcons.line_horizontal_3_decrease_circle_fill,
+              size: 16, color: colorScheme.primary),
+          const SizedBox(width: AppSpace.sm),
           Expanded(
-            child: Text(
-              labels.join(' · '),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: labels
+                    .map((label) => Padding(
+                          padding: const EdgeInsets.only(right: AppSpace.xs),
+                          child: AppTag(
+                            label: label,
+                            useThemeTone: true,
+                            themeTone: AppTagTone.primary,
+                            fontSize: 11,
+                          ),
+                        ))
+                    .toList(),
+              ),
             ),
           ),
           TextButton(
             onPressed: onClear,
             style: TextButton.styleFrom(
               minimumSize: const Size(0, 32),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpace.sm),
             ),
             child: const Text('清除'),
           ),
