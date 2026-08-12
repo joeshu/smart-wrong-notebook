@@ -369,7 +369,6 @@ class _CaptureEntrySheetState extends ConsumerState<CaptureEntrySheet> {
   /// 放弃当前未完成的录入任务：删除草稿与托管图片，重置会话，
   /// 使「拍照/相册」等入口重新可用。
   Future<void> _discardCurrentCapture() async {
-    debugPrint('[DISCARD] _discardCurrentCapture called, mounted=$mounted');
     if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -388,34 +387,27 @@ class _CaptureEntrySheetState extends ConsumerState<CaptureEntrySheet> {
         ],
       ),
     );
-    debugPrint('[DISCARD] dialog closed, confirmed=$confirmed, mounted=$mounted');
     if (confirmed != true || !mounted) return;
 
     final question = ref.read(currentQuestionProvider);
     final session = ref.read(captureSessionProvider.notifier);
-    debugPrint('[DISCARD] deleting question=${question?.id} '
-        'repo=${ref.read(questionRepositoryProvider).runtimeType}');
     try {
       if (question != null) {
         await ref.read(questionRepositoryProvider).delete(question.id);
-        debugPrint('[DISCARD] delete done');
         if (question.imagePath.isNotEmpty) {
           await ref
               .read(captureServiceProvider)
               .discardManagedImage(question.imagePath);
-          debugPrint('[DISCARD] discard image done');
         }
       }
     } catch (error) {
       debugPrint('[CaptureEntry] discard current capture failed: $error');
     } finally {
       session.endSession();
-      debugPrint('[DISCARD] endSession done, phase=${ref.read(captureSessionProvider).phase}');
       invalidateQuestionList(ref);
     }
     if (!mounted) return;
     setState(() => _errorMessage = null);
-    debugPrint('[DISCARD] setState done');
   }
 
   Future<void> _resumeCurrentCapture() async {

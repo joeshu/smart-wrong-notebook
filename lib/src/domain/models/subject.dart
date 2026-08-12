@@ -19,4 +19,19 @@ enum Subject {
   final String label;
   final IconData icon;
   final Color color;
+
+  /// 把科目名/展示名解析成中文展示名；未知或自定义科目返回 null。
+  ///
+  /// 复制粘贴录入默认 [Subject.custom]（name='custom'），图片录入默认
+  /// [Subject.math]（name='math'）。这些英文枚举名直接拼进分析 prompt 会变成
+  /// "custom科目的错题"/"math科目的错题"，既无意义又让模型丢失科目上下文，
+  /// 因此对外展示统一用中文 label（如"数学"），无法识别时返回 null 由调用方
+  /// 改用中性描述并请模型在返回结果里自行判定科目。
+  static String? resolveLabel(String name) {
+    if (name.isEmpty) return null;
+    for (final subject in Subject.values) {
+      if (subject.name == name || subject.label == name) return subject.label;
+    }
+    return null;
+  }
 }

@@ -2643,7 +2643,11 @@ class AiAnalysisService {
     String modelName = 'configured-model',
   }) {
     final buffer = StringBuffer();
-    buffer.writeln('请分析以下$subjectName科目的错题：');
+    final subjectLabel = Subject.resolveLabel(subjectName);
+    buffer.writeln(subjectLabel != null
+        ? '请分析以下$subjectLabel科目的错题：'
+        : '请分析以下错题，并判断其所属科目：在返回的 subject 字段填写中文科目名'
+          '（数学/语文/英语/物理/化学/生物/历史/地理/政治/科学）：');
     buffer.writeln();
     if (isGraphicalQuestion) {
       buffer.writeln('图片题输入说明：');

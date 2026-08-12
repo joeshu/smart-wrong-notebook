@@ -35,6 +35,25 @@ void main() {
     expect(prompt, contains('mistakeReason 必须为空字符串'));
   });
 
+  test('known subject uses Chinese label, unknown/custom stays neutral', () {
+    // 已知科目（枚举 name 或中文 label）都用中文展示名，保持原有引导句。
+    final mathPrompt = builder.buildAnalysisPrompt(
+      subjectName: 'math',
+      correctedText: '解方程 x+1=4',
+    );
+    expect(mathPrompt, contains('请分析以下数学科目的错题'));
+
+    // 复制粘贴录入默认 subject=Subject.custom（name='custom'），不能把
+    // "custom科目的错题" 这种无意义英文喂给模型，应改用中性描述并请模型自判科目。
+    final customPrompt = builder.buildAnalysisPrompt(
+      subjectName: 'custom',
+      correctedText: '解方程 x+1=4',
+    );
+    expect(customPrompt, isNot(contains('custom科目的错题')));
+    expect(customPrompt, contains('判断其所属科目'));
+    expect(customPrompt, contains('请分析以下错题'));
+  });
+
   test('field repair prompt requests only selected fields', () {
     const current = AnalysisResult(
       finalAnswer: '5',

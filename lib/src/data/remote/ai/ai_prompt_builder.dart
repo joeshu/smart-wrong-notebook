@@ -4,6 +4,7 @@ import 'package:smart_wrong_notebook/src/data/remote/ai/ai_provider_capabilities
 import 'package:smart_wrong_notebook/src/domain/models/ai_analysis_contract.dart';
 import 'package:smart_wrong_notebook/src/domain/models/ai_analysis_patch.dart';
 import 'package:smart_wrong_notebook/src/domain/models/analysis_result.dart';
+import 'package:smart_wrong_notebook/src/domain/models/subject.dart';
 
 class AiPromptBuilder {
   const AiPromptBuilder();
@@ -14,7 +15,7 @@ class AiPromptBuilder {
     String studentAnswer = '',
     String modelName = 'configured-model',
   }) {
-    return '''请分析以下$subjectName科目的错题。
+    return '''${_subjectClause(subjectName)}
 
 已确认题目：
 $correctedText
@@ -23,6 +24,20 @@ $correctedText
 ${studentAnswer.trim().isEmpty ? '（未提供）' : studentAnswer}
 
 ${buildV2ContractInstruction(modelName: modelName)}''';
+  }
+
+  /// 把科目名渲染成 prompt 开头的引导句。
+  ///
+  /// 已知科目（数学/语文/…）用中文展示名；未知或自定义科目（如复制粘贴录入
+  /// 默认 subject=Subject.custom，name='custom'）直接拼进 prompt 会变成
+  /// "custom科目的错题" 这种无意义英文，反而让模型丢失科目上下文。未知时
+  /// 改用中性描述，并请模型在返回结果里自行判定科目——response 合同要求返回
+  /// subject 字段，加载页会用它回写 working.subject，形成正确闭环。
+  String _subjectClause(String subjectName) {
+    final label = Subject.resolveLabel(subjectName);
+    if (label != null) return '请分析以下$label科目的错题。';
+    return '请分析以下错题，并判断其所属科目：在返回的 subject 字段填写中文科目名'
+        '（数学/语文/英语/物理/化学/生物/历史/地理/政治/科学）。';
   }
 
   String buildV2ContractInstruction({required String modelName}) => '''
