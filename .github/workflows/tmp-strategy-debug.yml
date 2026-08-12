@@ -1,0 +1,21 @@
+name: Temp Strategy Test Debug
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - run: flutter pub get
+
+      - name: Run strategy model tests with verbose output
+        run: |
+          set -x
+          flutter test test/domain/models/ai_model_strategy_test.dart -r expanded --dart-define=FLUTTER_TEST=true
