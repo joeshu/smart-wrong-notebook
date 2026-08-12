@@ -5,8 +5,14 @@ name: iOS Unsigned IPA (LiveContainer)
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag to attach the IPA to'
+        required: false
+        default: ''
   push:
     branches: [main]
+    tags: ['v*']
     paths:
       - '.github/workflows/ios-no-codesign.yml'
       - 'ios/**'
@@ -88,3 +94,16 @@ jobs:
           path: build/ios/Release-iphoneos/Runner.ipa
           if-no-files-found: error
           retention-days: 30
+
+      - name: Upload IPA to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || inputs.release_tag }}
+        run: |
+          set -e
+          gh release view "$RELEASE_TAG" >/dev/null 2>&1 || \
+            gh release create "$RELEASE_TAG" --title "AI错题本 $RELEASE_TAG" --notes "Automated iOS unsigned IPA release."
+          gh release upload "$RELEASE_TAG" \
+            build/ios/Release-iphoneos/Runner.ipa#ai-wrong-notebook-ios-unsigned-${RELEASE_TAG}.ipa \
+            --clobber
