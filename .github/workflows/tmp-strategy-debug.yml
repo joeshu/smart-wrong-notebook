@@ -15,7 +15,6 @@ jobs:
 
       - run: flutter pub get
 
-      - name: Run strategy model tests with verbose output
+      - name: Run strategy sync debug script
         run: |
-          set -x
-          flutter test test/domain/models/ai_model_strategy_test.dart -r expanded --dart-define=FLUTTER_TEST=true
+          dart run test/tool/strategy_sync_debug.dart
