@@ -77,12 +77,6 @@ void main() {
       apiKey: 'test-key',
     );
     final synced = await store.syncWithProvider(upgraded);
-    debugPrint('[DEBUG] synced.general=${synced.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel} '
-        'raw=${await settings.getString(AiModelStrategyStore.storageKey)}');
-    final reloadedAfterSync =
-        await AiModelStrategyStore(settings).load();
-    debugPrint('[DEBUG] reloadedAfterSync.general=${reloadedAfterSync.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel} '
-        'provider=${(await settings.getAiProviderConfig())?.model}');
 
     expect(synced.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel,
         'vision-pro');

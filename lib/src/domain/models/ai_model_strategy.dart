@@ -195,23 +195,16 @@ class AiModelStrategyStore {
   final SettingsRepository _settings;
 
   Future<AiModelStrategy> load() async {
-    final provider = await _settings.getAiProviderConfig();
     final raw = await _settings.getString(storageKey);
     if (raw != null && raw.isNotEmpty) {
       try {
-        final decoded = AiModelStrategy.decode(raw);
-        final reconciled = _reconcileWithProvider(decoded, provider);
-        if (reconciled.encode() != decoded.encode()) {
-          await save(reconciled);
-        }
-        return reconciled;
+        return AiModelStrategy.decode(raw);
       } catch (_) {
         // Corrupt strategy settings must not block the existing AI provider.
       }
     }
-    final migrated = _reconcileWithProvider(
-      AiModelStrategy.fromLegacyProvider(provider),
-      provider,
+    final migrated = AiModelStrategy.fromLegacyProvider(
+      await _settings.getAiProviderConfig(),
     );
     await save(migrated);
     return migrated;
