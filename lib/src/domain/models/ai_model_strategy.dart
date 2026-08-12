@@ -243,15 +243,15 @@ class AiModelStrategyStore {
   /// 把已保存的策略路由与当前提供商配置对齐。
   ///
   /// - 缺任务的路由补齐（后续新增任务类型时旧数据自动迁移）。
-  /// - 单提供商模式（所有路由指向同一提供方/模型）下跟随提供商变更。
-  /// - 多提供方/多模型形态只补空模型路由，不覆盖用户手工配置。
+  /// - 主提供商（id 相同）的路由跟随提供商变更，避免「任务路由预览」
+  ///   显示陈旧模型；用户为其他提供方配置的专用路由保持不变。
+  /// - 空模型路由补上当前模型。
   AiModelStrategy _reconcileWithProvider(
     AiModelStrategy current,
     AiProviderConfig? provider,
   ) {
     final providerId = provider?.id ?? 'default';
     final model = provider?.model ?? '';
-    final singleProviderMode = _usesSingleProviderConfiguration(current.routes);
     var changed = current.routes.length != AiTaskProfile.values.length;
     final routesByTask = <AiTaskProfile, AiTaskRoute>{
       for (final route in current.routes) route.task: route,
@@ -272,19 +272,14 @@ class AiModelStrategyStore {
         return route;
       }
 
-      if (singleProviderMode) {
-        if (route.primaryProviderId != providerId ||
-            route.primaryModel != model) {
-          changed = true;
-          return route.copyWith(
-            primaryProviderId: providerId,
-            primaryModel: model,
-          );
-        }
-        return route;
+      // 主提供商的通用路由跟随提供商变更；专用路由（其他提供方）保留。
+      if (route.primaryProviderId == providerId &&
+          route.primaryModel != model) {
+        changed = true;
+        return route.copyWith(primaryModel: model);
       }
 
-      // 多模型形态：仅补空模型路由。
+      // 空模型路由补上当前模型。
       if (route.primaryModel.isEmpty && model.isNotEmpty) {
         changed = true;
         return route.copyWith(
@@ -298,25 +293,5 @@ class AiModelStrategyStore {
 
     if (!changed) return current;
     return current.copyWith(routes: nextRoutes, updatedAt: DateTime.now());
-  }
-
-  /// 所有路由是否都指向同一个提供方与模型（默认的单一提供商形态）。
-  ///
-  /// 注意：不能拿第一条路由做基准——当提供商变更后第一条还是旧模型时，
-  /// 该判断会误判为“多模型形态”而拒绝同步。判据：
-  /// 1. providerId 全部一致；
-  /// 2. 非空模型取值不超过一种（空值表示尚未迁移，视为跟随提供商）。
-  bool _usesSingleProviderConfiguration(List<AiTaskRoute> routes) {
-    if (routes.isEmpty) return true;
-    final providerIds = <String>{};
-    final nonEmptyModels = <String>{};
-    for (final route in routes) {
-      providerIds.add(route.primaryProviderId);
-      if (route.primaryModel.isNotEmpty) {
-        nonEmptyModels.add(route.primaryModel);
-      }
-      if (providerIds.length > 1 || nonEmptyModels.length > 1) return false;
-    }
-    return true;
   }
 }

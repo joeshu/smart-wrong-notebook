@@ -168,10 +168,10 @@ void main() {
     );
     final synced = await store.syncWithProvider(changed);
 
-    // 两条不同非空模型属于多模型形态，保留手工配置。
+    // 同一提供方：主提供商模型变更全局生效，包括同 provider 的专用路由。
     expect(
       synced.routeFor(AiTaskProfile.riskReview)?.primaryModel,
-      'review-guard-model',
+      'another-model',
     );
     expect(
       synced.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel,
