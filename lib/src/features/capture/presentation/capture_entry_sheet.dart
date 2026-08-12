@@ -409,9 +409,6 @@ class _CaptureEntrySheetState extends ConsumerState<CaptureEntrySheet> {
     } catch (error) {
       debugPrint('[CaptureEntry] discard current capture failed: $error');
     } finally {
-      // 显式清空当前题目，避免丢弃后 currentQuestionProvider 仍持有已删除的草稿
-      // （endSession 只终结 capture 会话，不会清 currentQuestionProvider）。
-      ref.read(currentQuestionProvider.notifier).state = null;
       session.endSession();
       debugPrint('[DISCARD] endSession done, phase=${ref.read(captureSessionProvider).phase}');
       invalidateQuestionList(ref);

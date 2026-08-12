@@ -27,6 +27,14 @@ class _SpyCaptureService extends CaptureService {
     galleryCalls++;
     return CaptureResult.cancel();
   }
+
+  @override
+  Future<void> discardManagedImage(String imagePath) async {
+    // no-op：测试不做真实文件 I/O。否则在 FakeAsync zone 下
+    // `await discardManagedImage` 不会在 pumpAndSettle 期间完成，
+    // 导致 _discardCurrentCapture 的 finally（endSession 会清
+    // currentQuestionProvider）来不及执行，断言读到旧 record。
+  }
 }
 
 void main() {
