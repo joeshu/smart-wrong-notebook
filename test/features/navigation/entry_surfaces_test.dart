@@ -122,4 +122,62 @@ void main() {
     expect(container.read(currentQuestionProvider), same(record));
     expect(container.read(captureSessionProvider).imagePath, record.imagePath);
   });
+
+  testWidgets('active capture can be discarded from the entry sheet',
+      (tester) async {
+    final container = ProviderContainer(overrides: [
+      questionRepositoryProvider.overrideWithValue(
+        InMemoryQuestionRepository(),
+      ),
+      settingsRepositoryProvider.overrideWithValue(
+        InMemorySettingsRepository(),
+      ),
+      captureServiceProvider.overrideWithValue(_SpyCaptureService()),
+    ]);
+    addTearDown(container.dispose);
+
+    final record = QuestionRecord.draft(
+      id: 'discard-me',
+      imagePath: '/tmp/discard-me.jpg',
+      subject: Subject.math,
+      recognizedText: '待处理题目',
+    );
+    final session = container.read(captureSessionProvider.notifier);
+    session.selectImage(record.imagePath);
+    session.setCurrentQuestion(record);
+    await container
+        .read(questionRepositoryProvider)
+        .saveDraft(record);
+
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(
+        home: Scaffold(body: CaptureEntrySheet()),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('继续当前录题'), findsOneWidget);
+    await tester.ensureVisible(find.text('放弃当前任务'));
+    await tester.tap(find.text('放弃当前任务'));
+    await tester.pumpAndSettle();
+
+    // 确认弹窗
+    expect(find.text('放弃当前录入任务？'), findsOneWidget);
+    await tester.tap(find.text('放弃并删除'));
+    await tester.pumpAndSettle();
+
+    expect(container.read(currentQuestionProvider), isNull);
+    expect(container.read(captureSessionProvider).isTerminal, isTrue);
+    expect(
+      await container.read(questionRepositoryProvider).getById(record.id),
+      isNull,
+    );
+    expect(find.text('继续当前录题'), findsNothing);
+    // 放弃后拍照入口重新可用（不再被拦截）
+    await tester.tap(find.text('拍照'));
+    await tester.pump();
+    expect(find.text('当前已有录入任务正在处理中，请先继续或取消后再录入。'),
+        findsNothing);
+  });
 }

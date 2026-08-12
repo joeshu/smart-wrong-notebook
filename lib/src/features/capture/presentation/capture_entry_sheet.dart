@@ -194,7 +194,18 @@ class _CaptureEntrySheetState extends ConsumerState<CaptureEntrySheet> {
                   description: '已保存原图，完成 AI 配置后可从这里继续',
                   onTap: _resumeCurrentCapture,
                 ),
-                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: _discardCurrentCapture,
+                    icon: const Icon(CupertinoIcons.trash,
+                        size: 14, color: AppColors.danger),
+                    label: const Text('放弃当前任务',
+                        style: TextStyle(
+                            fontSize: 12, color: AppColors.danger)),
+                  ),
+                ),
+                const SizedBox(height: 6),
               ],
               _EntryOption(
                 icon: CupertinoIcons.camera,
@@ -388,6 +399,50 @@ class _CaptureEntrySheetState extends ConsumerState<CaptureEntrySheet> {
         _errorMessage = '操作失败: $e';
       });
     }
+  }
+
+  /// 放弃当前未完成的录入任务：删除草稿与托管图片，重置会话，
+  /// 使「拍照/相册」等入口重新可用。
+  Future<void> _discardCurrentCapture() async {
+    if (!mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('放弃当前录入任务？'),
+        content: const Text('原图和当前草稿都会删除，且无法恢复。'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('继续录题'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('放弃并删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final question = ref.read(currentQuestionProvider);
+    final session = ref.read(captureSessionProvider.notifier);
+    try {
+      if (question != null) {
+        await ref.read(questionRepositoryProvider).delete(question.id);
+        if (question.imagePath.isNotEmpty) {
+          await ref
+              .read(captureServiceProvider)
+              .discardManagedImage(question.imagePath);
+        }
+      }
+    } catch (error) {
+      debugPrint('[CaptureEntry] discard current capture failed: $error');
+    } finally {
+      session.endSession();
+      invalidateQuestionList(ref);
+    }
+    if (!mounted) return;
+    setState(() => _errorMessage = null);
   }
 
   Future<void> _resumeCurrentCapture() async {
