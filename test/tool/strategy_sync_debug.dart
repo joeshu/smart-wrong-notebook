@@ -4,8 +4,6 @@ import 'package:smart_wrong_notebook/src/domain/models/ai_provider_config.dart';
 
 Future<void> main() async {
   final settings = InMemorySettingsRepository();
-  print('DEFAULT CONFIG: ${await settings.getAiProviderConfig()}');
-
   await settings.saveAiProviderConfig(const AiProviderConfig(
     id: 'default',
     displayName: '默认',
@@ -13,13 +11,10 @@ Future<void> main() async {
     model: 'old-model',
     apiKey: 'test-key',
   ));
-  print('AFTER SAVE: ${(await settings.getAiProviderConfig())?.model}');
 
   final store = AiModelStrategyStore(settings);
-  final loaded = await store.load();
-  print('AFTER LOAD: general=${loaded.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel} '
-      'providerId=${loaded.routeFor(AiTaskProfile.generalAnalysis)?.primaryProviderId}');
-  print('RAW STORED: ${await settings.getString(AiModelStrategyStore.storageKey)}');
+  await store.load();
+  print('STEP0 raw after load: ${await settings.getString(AiModelStrategyStore.storageKey)}');
 
   const upgraded = AiProviderConfig(
     id: 'default',
@@ -29,14 +24,21 @@ Future<void> main() async {
     apiKey: 'test-key',
   );
   final synced = await store.syncWithProvider(upgraded);
-  print('AFTER SYNC: general=${synced.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel} '
-      'document=${synced.routeFor(AiTaskProfile.documentLayout)?.primaryModel}');
-  print('RAW AFTER SYNC: ${await settings.getString(AiModelStrategyStore.storageKey)}');
+  print('STEP1 raw right after sync: ${await settings.getString(AiModelStrategyStore.storageKey)}');
+  print('STEP1 synced.general=${synced.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel}');
 
-  final reloaded = await AiModelStrategyStore(settings).load();
-  print('RAW BEFORE RELOAD: ${await settings.getString(AiModelStrategyStore.storageKey)}');
-  print('AFTER RELOAD: general=${reloaded.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel} '
-      'providerId=${reloaded.routeFor(AiTaskProfile.generalAnalysis)?.primaryProviderId}');
-  print('RAW AFTER RELOAD: ${await settings.getString(AiModelStrategyStore.storageKey)}');
-  print('PROVIDER AFTER RELOAD: ${(await settings.getAiProviderConfig())?.model}');
+  // 再次直接 sync，观察返回对象与存储
+  final synced2 = await store.syncWithProvider(upgraded);
+  print('STEP2 raw right after second sync: ${await settings.getString(AiModelStrategyStore.storageKey)}');
+  print('STEP2 synced2.general=${synced2.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel}');
+
+  // 直接用 settings 读 raw，确认读路径
+  final raw = await settings.getString(AiModelStrategyStore.storageKey);
+  print('STEP3 raw via settings: $raw');
+
+  // 手动 decode 检查
+  if (raw != null && raw.isNotEmpty) {
+    final decoded = AiModelStrategy.decode(raw);
+    print('STEP3 decoded.general=${decoded.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel}');
+  }
 }
