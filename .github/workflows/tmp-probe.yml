@@ -1,0 +1,23 @@
+name: Temp Probe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          channel: stable
+
+      - run: flutter pub get
+
+      - name: Run end-session probe
+        run: |
+          flutter test test/tool/end_session_probe_test.dart -r expanded
+      - name: Run entry surfaces test
+        run: |
+          flutter test test/features/navigation/entry_surfaces_test.dart -r expanded
