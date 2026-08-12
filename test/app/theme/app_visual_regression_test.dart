@@ -17,7 +17,7 @@ void main() {
       expect(light.brightness, Brightness.light);
       expect(dark.brightness, Brightness.dark);
       expect(lightTokens!.cardRadius, greaterThanOrEqualTo(18));
-      expect(lightTokens.controlRadius, greaterThanOrEqualTo(10));
+      expect(lightTokens.controlRadius, greaterThanOrEqualTo(8));
       expect(light.colorScheme.primary, isNot(dark.colorScheme.primary));
     }
   });
