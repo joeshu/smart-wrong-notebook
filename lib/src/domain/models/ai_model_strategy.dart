@@ -56,6 +56,21 @@ class AiTaskRoute {
   final List<String> fallbackModelIds;
   final String? reviewModelId;
 
+  AiTaskRoute copyWith({
+    AiTaskProfile? task,
+    String? primaryProviderId,
+    String? primaryModel,
+    List<String>? fallbackModelIds,
+    String? reviewModelId,
+  }) =>
+      AiTaskRoute(
+        task: task ?? this.task,
+        primaryProviderId: primaryProviderId ?? this.primaryProviderId,
+        primaryModel: primaryModel ?? this.primaryModel,
+        fallbackModelIds: fallbackModelIds ?? this.fallbackModelIds,
+        reviewModelId: reviewModelId ?? this.reviewModelId,
+      );
+
   Map<String, dynamic> toJson() => <String, dynamic>{
         'task': task.name,
         'primaryProviderId': primaryProviderId,
@@ -180,19 +195,46 @@ class AiModelStrategyStore {
   final SettingsRepository _settings;
 
   Future<AiModelStrategy> load() async {
+    final provider = await _settings.getAiProviderConfig();
     final raw = await _settings.getString(storageKey);
     if (raw != null && raw.isNotEmpty) {
       try {
-        return AiModelStrategy.decode(raw);
+        final decoded = AiModelStrategy.decode(raw);
+        final reconciled = _reconcileWithProvider(decoded, provider);
+        if (reconciled.encode() != decoded.encode()) {
+          await save(reconciled);
+        }
+        return reconciled;
       } catch (_) {
         // Corrupt strategy settings must not block the existing AI provider.
       }
     }
-    final migrated = AiModelStrategy.fromLegacyProvider(
-      await _settings.getAiProviderConfig(),
+    final migrated = _reconcileWithProvider(
+      AiModelStrategy.fromLegacyProvider(provider),
+      provider,
     );
     await save(migrated);
     return migrated;
+  }
+
+  /// 将当前策略与最新 AI 提供商配置对齐后持久化。
+  ///
+  /// 单提供商模式下，提供商变更（换模型/换服务）会同步到所有任务路由，
+  /// 避免「任务路由预览」长期停留在『待配置』。
+  Future<AiModelStrategy> syncWithProvider(AiProviderConfig? provider) async {
+    final raw = await _settings.getString(storageKey);
+    final current = raw != null && raw.isNotEmpty
+        ? () {
+            try {
+              return AiModelStrategy.decode(raw);
+            } catch (_) {
+              return AiModelStrategy.fromLegacyProvider(provider);
+            }
+          }()
+        : AiModelStrategy.fromLegacyProvider(provider);
+    final synced = _reconcileWithProvider(current, provider);
+    await save(synced);
+    return synced;
   }
 
   Future<void> save(AiModelStrategy strategy) =>
@@ -203,5 +245,71 @@ class AiModelStrategyStore {
     final updated = current.copyWith(preset: preset, updatedAt: DateTime.now());
     await save(updated);
     return updated;
+  }
+
+  /// 把已保存的策略路由与当前提供商配置对齐。
+  ///
+  /// - 缺任务的路由补齐（后续新增任务类型时旧数据自动迁移）。
+  /// - 单提供商模式（所有路由指向同一提供方/模型）下跟随提供商变更。
+  /// - 只补空模型路由，不覆盖用户手工配置的多模型路由。
+  AiModelStrategy _reconcileWithProvider(
+    AiModelStrategy current,
+    AiProviderConfig? provider,
+  ) {
+    final providerId = provider?.id ?? 'default';
+    final model = provider?.model ?? '';
+    final singleProviderMode = _usesSingleProviderConfiguration(current.routes);
+    var changed = current.routes.length != AiTaskProfile.values.length;
+    final routesByTask = <AiTaskProfile, AiTaskRoute>{
+      for (final route in current.routes) route.task: route,
+    };
+
+    final nextRoutes = AiTaskProfile.values.map((task) {
+      final route = routesByTask[task];
+      if (route == null) {
+        changed = true;
+        return AiTaskRoute(
+          task: task,
+          primaryProviderId: providerId,
+          primaryModel: model,
+        );
+      }
+
+      if (provider == null) {
+        return route;
+      }
+
+      if (singleProviderMode &&
+          (route.primaryProviderId != providerId ||
+              route.primaryModel != model)) {
+        changed = true;
+        return route.copyWith(
+          primaryProviderId: providerId,
+          primaryModel: model,
+        );
+      }
+
+      if (route.primaryModel.isEmpty && model.isNotEmpty) {
+        changed = true;
+        return route.copyWith(
+          primaryProviderId: providerId,
+          primaryModel: model,
+        );
+      }
+
+      return route;
+    }).toList(growable: false);
+
+    if (!changed) return current;
+    return current.copyWith(routes: nextRoutes, updatedAt: DateTime.now());
+  }
+
+  /// 所有路由是否都指向同一个提供方与模型（默认的单一提供商形态）。
+  bool _usesSingleProviderConfiguration(List<AiTaskRoute> routes) {
+    if (routes.isEmpty) return true;
+    final first = routes.first;
+    return routes.every((route) =>
+        route.primaryProviderId == first.primaryProviderId &&
+        route.primaryModel == first.primaryModel);
   }
 }

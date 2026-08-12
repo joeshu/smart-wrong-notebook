@@ -1841,22 +1841,58 @@ class AiAnalysisService {
         buffer.write(' (HTTP $status)');
         if (body != null && body is Map && body['error'] != null) {
           final errMsg = body['error'];
+          final compatibilityMessage =
+              _providerCompatibilityMessage(errMsg?.toString());
+          if (compatibilityMessage != null) {
+            buffer.write(': $compatibilityMessage');
+            return buffer.toString();
+          }
           if (errMsg is Map) {
             buffer.write(': ${errMsg['message'] ?? errMsg}');
           } else {
             buffer.write(': $errMsg');
           }
         } else if (body is String && body.isNotEmpty) {
+          final compatibilityMessage = _providerCompatibilityMessage(body);
+          if (compatibilityMessage != null) {
+            buffer.write(': $compatibilityMessage');
+            return buffer.toString();
+          }
           buffer.write(
               ': ${body.length > 100 ? '${body.substring(0, 100)}...' : body}');
         }
       } else if (e.message != null) {
+        final compatibilityMessage = _providerCompatibilityMessage(e.message);
+        if (compatibilityMessage != null) {
+          buffer.write(': $compatibilityMessage');
+          return buffer.toString();
+        }
         buffer.write(': ${e.message}');
       }
     } else if (e.message != null) {
+      final compatibilityMessage = _providerCompatibilityMessage(e.message);
+      if (compatibilityMessage != null) {
+        buffer.write(': $compatibilityMessage');
+        return buffer.toString();
+      }
       buffer.write(': ${e.message}');
     }
     return buffer.toString();
+  }
+
+  /// 把后端协议级别的兼容错误翻译成用户可行动的提示。
+  ///
+  /// 例如模型不支持 `image_url` 多模态输入时，直接展示原始报错只会让
+  /// 用户困惑；这里统一转成"换视觉模型或改用文字解析"的指引。
+  String? _providerCompatibilityMessage(String? raw) {
+    final normalized = raw?.toLowerCase() ?? '';
+    if (normalized.contains('unknown variant `image_url`') ||
+        normalized.contains("unknown variant 'image_url'") ||
+        normalized.contains('expected `text`') ||
+        normalized.contains('expected text')) {
+      return '当前模型不支持图片输入，请切换到支持视觉识别的模型，或改用文字解析。';
+    }
+    return null;
   }
 
   QuestionSplitResult _defaultSplitQuestionCandidates(String text,

@@ -55,4 +55,81 @@ void main() {
     expect(strategy.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel,
         'test-model');
   });
+
+  test('syncWithProvider aligns single-provider routes to the new model',
+      () async {
+    final settings = InMemorySettingsRepository();
+    await settings.saveAiProviderConfig(const AiProviderConfig(
+      id: 'default',
+      displayName: '默认',
+      baseUrl: 'https://example.com/v1',
+      model: 'old-model',
+      apiKey: 'test-key',
+    ));
+    final store = AiModelStrategyStore(settings);
+    await store.load();
+
+    const upgraded = AiProviderConfig(
+      id: 'default',
+      displayName: '默认',
+      baseUrl: 'https://example.com/v1',
+      model: 'vision-pro',
+      apiKey: 'test-key',
+    );
+    final synced = await store.syncWithProvider(upgraded);
+
+    expect(synced.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel,
+        'vision-pro');
+    expect(synced.routeFor(AiTaskProfile.specializedAnalysis)?.primaryModel,
+        'vision-pro');
+    expect(synced.routeFor(AiTaskProfile.documentLayout)?.primaryModel,
+        'vision-pro');
+
+    final reloaded = await AiModelStrategyStore(settings).load();
+    expect(reloaded.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel,
+        'vision-pro');
+  });
+
+  test('syncWithProvider fills empty routes without overwriting custom ones',
+      () async {
+    final settings = InMemorySettingsRepository();
+    await settings.saveAiProviderConfig(const AiProviderConfig(
+      id: 'default',
+      displayName: '默认',
+      baseUrl: 'https://example.com/v1',
+      model: 'current-model',
+      apiKey: 'test-key',
+    ));
+    final store = AiModelStrategyStore(settings);
+    final migrated = await store.load();
+
+    // 模拟用户把复杂题分析改成了另一个模型，其余路由保持单提供商形态。
+    final custom = migrated.copyWith(
+      routes: migrated.routes
+          .map((route) => route.task == AiTaskProfile.specializedAnalysis
+              ? route.copyWith(primaryModel: 'custom-premium')
+              : route)
+          .toList(growable: false),
+    );
+    await store.save(custom);
+
+    const changed = AiProviderConfig(
+      id: 'default',
+      displayName: '默认',
+      baseUrl: 'https://example.com/v1',
+      model: 'another-model',
+      apiKey: 'test-key',
+    );
+    final synced = await store.syncWithProvider(changed);
+
+    // 多模型形态：不再整体跟随，只补空模型路由。
+    expect(
+      synced.routeFor(AiTaskProfile.specializedAnalysis)?.primaryModel,
+      'custom-premium',
+    );
+    expect(
+      synced.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel,
+      'another-model',
+    );
+  });
 }

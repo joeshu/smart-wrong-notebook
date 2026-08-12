@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:smart_wrong_notebook/src/app/providers.dart';
 import 'package:smart_wrong_notebook/src/core/constants/app_strings.dart';
+import 'package:smart_wrong_notebook/src/domain/models/ai_model_strategy.dart';
 import 'package:smart_wrong_notebook/src/domain/models/ai_provider_config.dart';
 import 'package:smart_wrong_notebook/src/shared/ui/app_colors.dart';
 import 'package:smart_wrong_notebook/src/shared/ui/app_ui.dart';
@@ -283,6 +284,9 @@ class _ProviderConfigScreenState extends ConsumerState<ProviderConfigScreen> {
       isPrivate: _isPrivate,
     );
     await ref.read(settingsRepositoryProvider).saveAiProviderConfig(config);
+    // 单提供商模式下让任务路由预览跟随当前模型，避免显示「待配置」。
+    await AiModelStrategyStore(ref.read(settingsRepositoryProvider))
+        .syncWithProvider(config);
     if (mounted) {
       setState(() => _loading = false);
       ScaffoldMessenger.of(context)
@@ -311,6 +315,8 @@ class _ProviderConfigScreenState extends ConsumerState<ProviderConfigScreen> {
     try {
       debugPrint('[ProviderConfig] Saving config...');
       await ref.read(settingsRepositoryProvider).saveAiProviderConfig(config);
+      await AiModelStrategyStore(ref.read(settingsRepositoryProvider))
+          .syncWithProvider(config);
       debugPrint('[ProviderConfig] Config saved successfully');
 
       final savedConfig =

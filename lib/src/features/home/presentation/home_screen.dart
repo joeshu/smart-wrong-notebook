@@ -90,7 +90,7 @@ class HomeScreen extends ConsumerWidget {
             ? () => context.go(
                   hasPendingBatch ? '/worksheet/import' : '/notebook',
                 )
-            : () => context.go('/add');
+            : () => context.push('/add');
 
     return AppPage(
       maxWidth: AppContentWidth.wide,
@@ -131,7 +131,7 @@ class HomeScreen extends ConsumerWidget {
                   onOpenRecognize: hasPendingBatch
                       ? () => context.go('/worksheet/import')
                       : () => context.go('/notebook'),
-                  onCapture: () => context.go('/add'),
+                  onCapture: () => context.push('/add'),
                 ),
                 loading: () => const _TodayPlanSkeleton(),
                 error: (_, __) => AppErrorState(
@@ -150,7 +150,7 @@ class HomeScreen extends ConsumerWidget {
                 onOpenRecognize: hasPendingBatch
                     ? () => context.go('/worksheet/import')
                     : () => context.go('/notebook'),
-                onCapture: () => context.go('/add'),
+                onCapture: () => context.push('/add'),
               ),
               loading: () => const _TodayPlanSkeleton(),
               error: (_, __) => const SizedBox.shrink(),
@@ -165,7 +165,7 @@ class HomeScreen extends ConsumerWidget {
                 onOpenRecognize: hasPendingBatch
                     ? () => context.go('/worksheet/import')
                     : () => context.go('/notebook'),
-                onCapture: () => context.go('/add'),
+                onCapture: () => context.push('/add'),
               ),
               loading: () => const _TodayPlanSkeleton(),
               error: (_, __) => const SizedBox.shrink(),

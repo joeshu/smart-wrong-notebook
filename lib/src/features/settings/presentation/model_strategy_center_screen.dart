@@ -34,14 +34,13 @@ class _ModelStrategyCenterScreenState
   Future<void> _load() async {
     try {
       final settings = ref.read(settingsRepositoryProvider);
-      final results = await Future.wait<dynamic>(<Future<dynamic>>[
-        AiModelStrategyStore(settings).load(),
-        settings.getAiProviderConfig(),
-      ]);
+      final provider = await settings.getAiProviderConfig();
+      final strategy =
+          await AiModelStrategyStore(settings).syncWithProvider(provider);
       if (!mounted) return;
       setState(() {
-        _strategy = results[0] as AiModelStrategy;
-        _provider = results[1] as AiProviderConfig?;
+        _strategy = strategy;
+        _provider = provider;
         _error = null;
       });
     } catch (error) {
@@ -303,32 +302,38 @@ class _ModelStrategyCenterScreenState
       child: Column(
         children: <Widget>[
           for (var index = 0; index < strategy.routes.length; index++) ...<Widget>[
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpace.lg, vertical: AppSpace.md),
-              child: Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Text(strategy.routes[index].task.label,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                  ),
-                  Text(
-                    strategy.routes[index].primaryModel.isEmpty
-                        ? '待配置'
-                        : strategy.routes[index].primaryModel,
-                    style: TextStyle(
-                      color: strategy.routes[index].primaryModel.isEmpty
-                          ? AppColors.warning
-                          : scheme.onSurfaceVariant,
-                      fontSize: 12,
+            () {
+              final route = strategy.routes[index];
+              final providerModel = _provider?.model ?? '';
+              final resolvedModel = route.primaryModel.isNotEmpty
+                  ? route.primaryModel
+                  : (providerModel.isNotEmpty ? providerModel : '待配置');
+              final configured = resolvedModel != '待配置';
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpace.lg, vertical: AppSpace.md),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Text(route.task.label,
+                          style: const TextStyle(fontWeight: FontWeight.w600)),
                     ),
-                  ),
-                  const SizedBox(width: AppSpace.sm),
-                  Icon(CupertinoIcons.chevron_right,
-                      size: 14, color: scheme.outline),
-                ],
-              ),
-            ),
+                    Text(
+                      resolvedModel,
+                      style: TextStyle(
+                        color: configured
+                            ? scheme.onSurfaceVariant
+                            : AppColors.warning,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpace.sm),
+                    Icon(CupertinoIcons.chevron_right,
+                        size: 14, color: scheme.outline),
+                  ],
+                ),
+              );
+            }(),
             if (index < strategy.routes.length - 1)
               Divider(height: 1, color: scheme.outlineVariant),
           ],
