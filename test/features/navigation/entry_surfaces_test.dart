@@ -5,6 +5,7 @@ import 'package:smart_wrong_notebook/src/app/providers.dart';
 import 'package:smart_wrong_notebook/src/data/repositories/question_repository.dart';
 import 'package:smart_wrong_notebook/src/data/repositories/settings_repository.dart';
 import 'package:smart_wrong_notebook/src/data/services/capture_service.dart';
+import 'package:smart_wrong_notebook/src/domain/models/capture_analysis_state.dart';
 import 'package:smart_wrong_notebook/src/domain/models/question_record.dart';
 import 'package:smart_wrong_notebook/src/domain/models/subject.dart';
 import 'package:smart_wrong_notebook/src/features/capture/presentation/capture_entry_sheet.dart';
@@ -176,7 +177,10 @@ void main() {
     debugPrint('[DISCARD] after tap: current=${container.read(currentQuestionProvider)} '
         'phase=${container.read(captureSessionProvider).phase}');
     expect(container.read(currentQuestionProvider), isNull);
-    expect(container.read(captureSessionProvider).isTerminal, isTrue);
+    // 丢弃后 session 重置为 idle（endSession 调 reset→initial），并非 terminal；
+    // terminal 仅 ready/failed/cancelled。idle 表示已回到可重新录题的初始态。
+    expect(container.read(captureSessionProvider).phase,
+        CaptureAnalysisPhase.idle);
     expect(find.text('继续当前录题'), findsNothing);
     // 放弃后拍照入口重新可用（不再被拦截）
     await tester.tap(find.text('拍照'));
