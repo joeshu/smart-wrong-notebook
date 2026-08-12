@@ -14,7 +14,6 @@ Future<void> main() async {
 
   final store = AiModelStrategyStore(settings);
   await store.load();
-  print('STEP0 raw after load: ${await settings.getString(AiModelStrategyStore.storageKey)}');
 
   const upgraded = AiProviderConfig(
     id: 'default',
@@ -24,21 +23,11 @@ Future<void> main() async {
     apiKey: 'test-key',
   );
   final synced = await store.syncWithProvider(upgraded);
-  print('STEP1 raw right after sync: ${await settings.getString(AiModelStrategyStore.storageKey)}');
-  print('STEP1 synced.general=${synced.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel}');
+  print('AFTER SYNC: ${synced.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel}');
+  print('RAW AFTER SYNC: ${await settings.getString(AiModelStrategyStore.storageKey)}');
 
-  // 再次直接 sync，观察返回对象与存储
-  final synced2 = await store.syncWithProvider(upgraded);
-  print('STEP2 raw right after second sync: ${await settings.getString(AiModelStrategyStore.storageKey)}');
-  print('STEP2 synced2.general=${synced2.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel}');
-
-  // 直接用 settings 读 raw，确认读路径
-  final raw = await settings.getString(AiModelStrategyStore.storageKey);
-  print('STEP3 raw via settings: $raw');
-
-  // 手动 decode 检查
-  if (raw != null && raw.isNotEmpty) {
-    final decoded = AiModelStrategy.decode(raw);
-    print('STEP3 decoded.general=${decoded.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel}');
-  }
+  // 关键：sync 后立刻再 load()，观察是否被覆盖
+  final reloaded = await store.load();
+  print('AFTER RELOAD: ${reloaded.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel}');
+  print('RAW AFTER RELOAD: ${await settings.getString(AiModelStrategyStore.storageKey)}');
 }
