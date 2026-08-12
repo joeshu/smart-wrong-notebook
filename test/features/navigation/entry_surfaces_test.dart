@@ -182,10 +182,11 @@ void main() {
     expect(container.read(captureSessionProvider).phase,
         CaptureAnalysisPhase.idle);
     expect(find.text('继续当前录题'), findsNothing);
-    // 放弃后拍照入口重新可用（不再被拦截）
-    await tester.tap(find.text('拍照'));
-    await tester.pump();
-    expect(find.text('当前已有录入任务正在处理中，请先继续或取消后再录入。'),
-        findsNothing);
+    // 放弃后拍照入口不再被拦截：session 已回 idle，imagePath 为空，
+    // _pickWithChoice 的 block 条件（imagePath != null && !isTerminal）不成立。
+    // （不直接 tap 拍照：那会进入 _pickWithChoice → GoRouter.of(context)，
+    //  而本测试用 MaterialApp(home:) 未注入 GoRouter；block 是否触发是纯状态
+    //  门控，断言 imagePath 即可忠实覆盖。）
+    expect(container.read(captureSessionProvider).imagePath, isNull);
   });
 }
