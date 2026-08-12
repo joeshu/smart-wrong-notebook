@@ -67,9 +67,7 @@ void main() {
     expect(find.text('录入错题'), findsOneWidget);
     expect(find.text('拍照'), findsOneWidget);
     expect(find.text('相册'), findsOneWidget);
-    expect(find.text('试卷批量导入'), findsOneWidget);
-    expect(find.text('连续拍摄试卷'), findsOneWidget);
-    expect(find.text('PDF 试卷导入'), findsOneWidget);
+    expect(find.text('复制粘贴录入'), findsOneWidget);
     expect(find.text('识别选项'), findsOneWidget);
     expect(find.textContaining('PaddleOCR'), findsNothing);
     expect(find.textContaining('MinerU'), findsNothing);
