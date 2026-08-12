@@ -103,11 +103,14 @@ void main() {
     final store = AiModelStrategyStore(settings);
     final migrated = await store.load();
 
-    // 模拟用户把复杂题分析改成了另一个模型，其余路由保持单提供商形态。
+    // 模拟用户把复杂题分析改成了另一个提供方/模型，其余路由保持默认形态。
     final custom = migrated.copyWith(
       routes: migrated.routes
           .map((route) => route.task == AiTaskProfile.specializedAnalysis
-              ? route.copyWith(primaryModel: 'custom-premium')
+              ? route.copyWith(
+                  primaryProviderId: 'premium-provider',
+                  primaryModel: 'custom-premium',
+                )
               : route)
           .toList(growable: false),
     );
@@ -122,10 +125,53 @@ void main() {
     );
     final synced = await store.syncWithProvider(changed);
 
-    // 多模型形态：不再整体跟随，只补空模型路由。
+    // 多提供方形态：不再整体跟随，只补空模型路由。
     expect(
       synced.routeFor(AiTaskProfile.specializedAnalysis)?.primaryModel,
       'custom-premium',
+    );
+    expect(
+      synced.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel,
+      'another-model',
+    );
+  });
+
+  test('syncWithProvider keeps custom model under same provider',
+      () async {
+    final settings = InMemorySettingsRepository();
+    await settings.saveAiProviderConfig(const AiProviderConfig(
+      id: 'default',
+      displayName: '默认',
+      baseUrl: 'https://example.com/v1',
+      model: 'current-model',
+      apiKey: 'test-key',
+    ));
+    final store = AiModelStrategyStore(settings);
+    final migrated = await store.load();
+
+    // 同一提供方下，把风险字段复核固定为专用模型。
+    final custom = migrated.copyWith(
+      routes: migrated.routes
+          .map((route) => route.task == AiTaskProfile.riskReview
+              ? route.copyWith(primaryModel: 'review-guard-model')
+              : route)
+          .toList(growable: false),
+    );
+    await store.save(custom);
+
+    const changed = AiProviderConfig(
+      id: 'default',
+      displayName: '默认',
+      baseUrl: 'https://example.com/v1',
+      model: 'another-model',
+      apiKey: 'test-key',
+    );
+    final synced = await store.syncWithProvider(changed);
+
+    // 两条不同非空模型属于多模型形态，保留手工配置。
+    expect(
+      synced.routeFor(AiTaskProfile.riskReview)?.primaryModel,
+      'review-guard-model',
     );
     expect(
       synced.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel,

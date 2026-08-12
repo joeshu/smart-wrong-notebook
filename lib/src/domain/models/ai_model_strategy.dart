@@ -251,7 +251,7 @@ class AiModelStrategyStore {
   ///
   /// - 缺任务的路由补齐（后续新增任务类型时旧数据自动迁移）。
   /// - 单提供商模式（所有路由指向同一提供方/模型）下跟随提供商变更。
-  /// - 只补空模型路由，不覆盖用户手工配置的多模型路由。
+  /// - 多提供方/多模型形态只补空模型路由，不覆盖用户手工配置。
   AiModelStrategy _reconcileWithProvider(
     AiModelStrategy current,
     AiProviderConfig? provider,
@@ -279,16 +279,19 @@ class AiModelStrategyStore {
         return route;
       }
 
-      if (singleProviderMode &&
-          (route.primaryProviderId != providerId ||
-              route.primaryModel != model)) {
-        changed = true;
-        return route.copyWith(
-          primaryProviderId: providerId,
-          primaryModel: model,
-        );
+      if (singleProviderMode) {
+        if (route.primaryProviderId != providerId ||
+            route.primaryModel != model) {
+          changed = true;
+          return route.copyWith(
+            primaryProviderId: providerId,
+            primaryModel: model,
+          );
+        }
+        return route;
       }
 
+      // 多模型形态：仅补空模型路由。
       if (route.primaryModel.isEmpty && model.isNotEmpty) {
         changed = true;
         return route.copyWith(
@@ -305,11 +308,22 @@ class AiModelStrategyStore {
   }
 
   /// 所有路由是否都指向同一个提供方与模型（默认的单一提供商形态）。
+  ///
+  /// 注意：不能拿第一条路由做基准——当提供商变更后第一条还是旧模型时，
+  /// 该判断会误判为“多模型形态”而拒绝同步。判据：
+  /// 1. providerId 全部一致；
+  /// 2. 非空模型取值不超过一种（空值表示尚未迁移，视为跟随提供商）。
   bool _usesSingleProviderConfiguration(List<AiTaskRoute> routes) {
     if (routes.isEmpty) return true;
-    final first = routes.first;
-    return routes.every((route) =>
-        route.primaryProviderId == first.primaryProviderId &&
-        route.primaryModel == first.primaryModel);
+    final providerIds = <String>{};
+    final nonEmptyModels = <String>{};
+    for (final route in routes) {
+      providerIds.add(route.primaryProviderId);
+      if (route.primaryModel.isNotEmpty) {
+        nonEmptyModels.add(route.primaryModel);
+      }
+      if (providerIds.length > 1 || nonEmptyModels.length > 1) return false;
+    }
+    return true;
   }
 }
