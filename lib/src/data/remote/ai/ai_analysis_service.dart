@@ -651,7 +651,7 @@ class AiAnalysisService {
         maxTokens: firstMaxTokens,
         imageDetail: firstImageDetail,
       );
-      final extraction = await _parseContentWithJsonRetry(
+      var extraction = await _parseContentWithJsonRetry(
         firstContent: extractionContent,
         parse: _parseExtractionResponse,
         retryContentFetcher: () => _requestAiContentWithImage(
@@ -666,11 +666,46 @@ class AiAnalysisService {
         stage: 'extraction',
       );
 
-      // 识别为空但图非空告警：图片较大但未提取到文字，可能是图片质量差或纯图形题。
+      // 首次提取为空但图片较大：用高清 detail + 强调 prompt 重试一次，
+      // 给视觉模型第二次机会（auto detail 偶尔漏识别文字）。
       if (imageBytes.length > 50 * 1024 &&
           extraction.extractedQuestionText.length < 5) {
         debugPrint(
-            '[AiAnalysisService] 提取文本为空但图片较大(${imageBytes.length} bytes)，提示重拍');
+            '[AiAnalysisService] 首次提取文本为空(${imageBytes.length} bytes)，用 high detail 重试');
+        const retryMaxTokens = 2200;
+        const retryImageDetail = 'high';
+        final retryPrompt =
+            '$prompt\n\n请特别注意：仔细识别图片中的全部文字内容，包括题号、题干、选项、图表标注与手写批注。即使图片不够清晰也请尽力逐字辨认，不要遗漏。';
+        final retryContent = await _requestAiContentWithImage(
+          config: config,
+          systemPrompt: systemPrompt,
+          prompt: retryPrompt,
+          imageBytes: imageBytes,
+          maxTokens: retryMaxTokens,
+          imageDetail: retryImageDetail,
+          temperature: 0.2,
+        );
+        extraction = await _parseContentWithJsonRetry(
+          firstContent: retryContent,
+          parse: _parseExtractionResponse,
+          retryContentFetcher: () => _requestAiContentWithImage(
+            config: config,
+            systemPrompt: systemPrompt,
+            prompt: retryPrompt,
+            imageBytes: imageBytes,
+            maxTokens: retryMaxTokens + 500,
+            imageDetail: retryImageDetail,
+            temperature: 0.3,
+          ),
+          stage: 'extraction_retry',
+        );
+      }
+
+      // 重试后仍为空但图非空告警：图片较大但未提取到文字，可能是图片质量差或纯图形题。
+      if (imageBytes.length > 50 * 1024 &&
+          extraction.extractedQuestionText.length < 5) {
+        debugPrint(
+            '[AiAnalysisService] 高清重试后仍为空(${imageBytes.length} bytes)，提示重拍');
         throw AiAnalysisException(
             '未识别到文字内容，可能图片质量差或为纯图形题，建议重拍或手动输入');
       }

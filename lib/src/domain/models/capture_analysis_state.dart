@@ -143,7 +143,11 @@ class CaptureAnalysisState {
 
   static const Map<CaptureAnalysisPhase, Set<CaptureAnalysisPhase>>
       _allowedTransitions = {
-    CaptureAnalysisPhase.idle: {CaptureAnalysisPhase.imageSelected},
+    CaptureAnalysisPhase.idle: {
+      CaptureAnalysisPhase.imageSelected,
+      // 复制粘贴录入无图片，不经过 imageSelected，直接进入分析阶段。
+      CaptureAnalysisPhase.analyzing,
+    },
     CaptureAnalysisPhase.imageSelected: {
       CaptureAnalysisPhase.idle,
       CaptureAnalysisPhase.cropping,
@@ -167,6 +171,8 @@ class CaptureAnalysisState {
       CaptureAnalysisPhase.retryable,
       CaptureAnalysisPhase.failed,
       CaptureAnalysisPhase.cancelled,
+      // 允许分析中直接结束会话回 idle（endSession：复制粘贴录入保存草稿失败等场景）
+      CaptureAnalysisPhase.idle,
     },
     CaptureAnalysisPhase.needsConfirmation: {
       CaptureAnalysisPhase.analyzing,

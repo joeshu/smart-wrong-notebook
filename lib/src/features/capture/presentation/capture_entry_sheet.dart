@@ -463,8 +463,11 @@ class _CaptureEntrySheetState extends ConsumerState<CaptureEntrySheet> {
       recognizedText: trimmed,
     );
     final session = ref.read(captureSessionProvider.notifier);
-    session.selectImage('');
+    // 复制粘贴无图片，不经过 imageSelected（transitionTo(imageSelected) 校验
+    // imagePath 非空，传 '' 会抛 ArgumentError）。直接 setCurrentQuestion +
+    // beginAnalysis（idle→analyzing 已在状态转换表放行）。
     session.setCurrentQuestion(record);
+    session.beginAnalysis();
     try {
       await ref.read(questionRepositoryProvider).saveDraft(record);
     } catch (error) {
