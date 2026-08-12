@@ -3,7 +3,7 @@ import 'package:flutter/cupertino.dart';
 
 /// OCR 置信度徽章。展示彩色背景 + 文字 + 百分比，引导用户校对低置信度内容。
 ///
-/// 阈值（与 worksheet_region_editor_screen.dart 的 _qualityColor/_qualityLabel 对齐）：
+/// 阈值（取置信度分档的固定约定，全局统一）：
 /// - >= 0.85：绿色，"识别可靠"
 /// - >= 0.7：蓝色，"识别较可靠"
 /// - >= 0.5：橙色，"建议校对"

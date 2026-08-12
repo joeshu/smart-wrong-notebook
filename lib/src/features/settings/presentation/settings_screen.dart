@@ -6,7 +6,6 @@ import 'package:smart_wrong_notebook/src/app/providers.dart';
 import 'package:smart_wrong_notebook/src/app/theme/app_visual_style.dart';
 import 'package:smart_wrong_notebook/src/core/constants/app_strings.dart';
 import 'package:smart_wrong_notebook/src/domain/models/ai_provider_config.dart';
-import 'package:smart_wrong_notebook/src/domain/models/layout_provider_config.dart';
 import 'package:smart_wrong_notebook/src/shared/ui/app_colors.dart';
 import 'package:smart_wrong_notebook/src/shared/ui/app_components.dart';
 import 'package:smart_wrong_notebook/src/shared/ui/app_layout.dart';
@@ -23,9 +22,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    // 进入设置主页时主动回填一次版面识别配置（含安全存储中的 Token），
-    // 避免 _EngineStatusRow 因 apiKey / secondaryApiKey 为空而把已调通的
-    // PaddleOCR / MinerU 误报为红色未配置。
+    // 进入设置主页时主动回填一次版面识别配置（保持与持久化一致）。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) restoreLayoutProviderConfig(ref);
     });
@@ -37,9 +34,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final visualStyle = ref.watch(appVisualStyleProvider);
     final reminderEnabled = ref.watch(reviewReminderEnabledProvider);
     final colorScheme = Theme.of(context).colorScheme;
-    // Phase 9-5：watch AI / Layout 配置状态徽章
     final aiConfig = ref.watch(aiProviderConfigSnapshotProvider).valueOrNull;
-    final layoutConfig = ref.watch(layoutProviderConfigProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text(AppStrings.settingsTitle)),
@@ -149,12 +144,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: AppSpace.lg),
             AppSectionTitle(AppStrings.settingsAiService),
             const SizedBox(height: AppSpace.sm),
-            // Phase 9-5：状态聚合徽章
-            _EngineStatusRow(
-              aiConfig: aiConfig,
-              layoutConfig: layoutConfig,
-            ),
-            const SizedBox(height: AppSpace.sm),
             AppCard(
               child: Column(
                 children: <Widget>[
@@ -169,23 +158,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       label: _isAiReady(aiConfig) ? '就绪' : '未配置',
                     ),
                     onTap: () => context.go('/settings/provider'),
-                  ),
-                  Divider(
-                    height: 1,
-                    indent: 56,
-                    color: colorScheme.outlineVariant,
-                  ),
-                  AppListTile(
-                    icon: CupertinoIcons.doc_text,
-                    iconColor: AppColors.accentTeal,
-                    iconBackgroundColor: AppColors.accentTealContainerLight,
-                    title: AppStrings.settingsLayoutProvider,
-                    subtitle: AppStrings.settingsLayoutProviderSubtitle,
-                    trailing: _StatusBadge(
-                      ready: layoutConfig.isReady,
-                      label: _layoutLabel(layoutConfig),
-                    ),
-                    onTap: () => context.go('/settings/layout'),
                   ),
                   Divider(
                     height: 1,
@@ -518,67 +490,6 @@ bool _isAiReady(AiProviderConfig? config) {
       config.model.isNotEmpty;
 }
 
-String _layoutLabel(LayoutProviderConfig config) {
-  if (config.isReady) return '就绪';
-  switch (config.type) {
-    case LayoutProviderType.paddleCloud:
-    case LayoutProviderType.mineruCloud:
-    case LayoutProviderType.autoCloud:
-    case LayoutProviderType.customHttp:
-      return '未配置';
-    case LayoutProviderType.currentVision:
-    case LayoutProviderType.manualOnly:
-      return '就绪';
-  }
-}
-
-/// AI 引擎 + 版面识别引擎状态徽章聚合行（Phase 9-5）。
-class _EngineStatusRow extends StatelessWidget {
-  const _EngineStatusRow({required this.aiConfig, required this.layoutConfig});
-
-  final AiProviderConfig? aiConfig;
-  final LayoutProviderConfig layoutConfig;
-
-  @override
-  Widget build(BuildContext context) {
-    // 依据“当前所选类型实际会调用的引擎”判定就绪状态，
-    // 而非用 type==paddleCloud 这类硬匹配——否则自动策略
-    // (autoCloud) 下 PaddleOCR / MinerU 都会落入 else 分支被误报为红色 ✗。
-    final usesPaddle = layoutConfig.type == LayoutProviderType.paddleCloud ||
-        layoutConfig.type == LayoutProviderType.autoCloud;
-    final usesMineru = layoutConfig.type == LayoutProviderType.mineruCloud ||
-        layoutConfig.type == LayoutProviderType.autoCloud;
-    final paddleReady = usesPaddle && layoutConfig.apiKey.isNotEmpty;
-    final mineruReady = usesMineru && layoutConfig.secondaryApiKey.isNotEmpty;
-
-    return Row(
-      children: <Widget>[
-        _StatusBadge(
-          ready: _isAiReady(aiConfig),
-          label: _isAiReady(aiConfig) ? '普通AI ✓' : '普通AI ✗',
-        ),
-        const SizedBox(width: AppSpace.sm),
-        _StatusBadge(
-          ready: paddleReady,
-          warning: usesPaddle && !paddleReady,
-          neutral: !usesPaddle,
-          label: !usesPaddle
-              ? 'PaddleOCR —'
-              : (paddleReady ? 'PaddleOCR ✓' : 'PaddleOCR ⚠'),
-        ),
-        const SizedBox(width: AppSpace.sm),
-        _StatusBadge(
-          ready: mineruReady,
-          warning: usesMineru && !mineruReady,
-          neutral: !usesMineru,
-          label: !usesMineru
-              ? 'MinerU —'
-              : (mineruReady ? 'MinerU ✓' : 'MinerU ⚠'),
-        ),
-      ],
-    );
-  }
-}
 
 /// 配置状态徽章。
 class _StatusBadge extends StatelessWidget {

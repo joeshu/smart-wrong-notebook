@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:smart_wrong_notebook/src/app/providers.dart';
 import 'package:smart_wrong_notebook/src/domain/models/capture_mode.dart';
 import 'package:smart_wrong_notebook/src/domain/models/question_record.dart';
-import 'package:smart_wrong_notebook/src/domain/models/worksheet_import_session.dart';
+import 'package:smart_wrong_notebook/src/domain/models/subject.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:smart_wrong_notebook/src/shared/ui/app_colors.dart';
@@ -234,56 +234,21 @@ class _CaptureEntrySheetState extends ConsumerState<CaptureEntrySheet> {
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  '批量整理',
+                  '其他方式',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
                 ),
               ),
               const SizedBox(height: AppSpace.xs),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '试卷、PDF 或多页图片适合在这里一次处理。',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpace.xs),
               _EntryOption(
-                icon: CupertinoIcons.rectangle_stack,
-                iconColor: AppColors.success,
-                iconBg: AppColors.semanticContainer(
-                  AppColors.success,
-                  isDark: isDark,
-                ),
-                label: '试卷批量导入',
-                description: '从相册选择一页或多页，自动框选多道题',
-                onTap: () => _importWorksheet(fromPdf: false),
-              ),
-              const SizedBox(height: 10),
-              _EntryOption(
-                icon: CupertinoIcons.camera_on_rectangle,
-                iconColor: AppColors.accentTeal,
-                iconBg: AppColors.semanticContainer(
-                  AppColors.accentTeal,
-                  isDark: isDark,
-                ),
-                label: '连续拍摄试卷',
-                description: '逐页拍照，完成后统一框选和整理',
-                onTap: _captureWorksheetContinuously,
-              ),
-              const SizedBox(height: 10),
-              _EntryOption(
-                icon: CupertinoIcons.doc,
+                icon: CupertinoIcons.doc_text,
                 iconColor: AppColors.accentPurple,
                 iconBg: AppColors.semanticContainer(
                   AppColors.accentPurple,
                   isDark: isDark,
                 ),
-                label: 'PDF 试卷导入',
-                description: '导入 PDF 并按页整理错题',
-                onTap: () => _importWorksheet(fromPdf: true),
+                label: '复制粘贴录入',
+                description: '直接粘贴题目文本，交给 AI 识别与分析',
+                onTap: _pasteQuestionText,
               ),
               const SizedBox(height: 10),
               Text(
@@ -472,122 +437,79 @@ class _CaptureEntrySheetState extends ConsumerState<CaptureEntrySheet> {
     );
   }
 
-  Future<void> _importWorksheet({required bool fromPdf}) async {
-    if (ref.read(currentWorksheetImportProvider) != null) {
-      setState(() => _errorMessage = '已有试卷导入任务，请先完成或取消当前批次。');
+  /// 复制粘贴录入：直接粘贴题目文本，跳过图片识别，交给 AI 分析。
+  ///
+  /// 文本草稿不含图片（imagePath 为空），analysis_loading 会直接以
+  /// [recognizedText] 作为题干进入 AI 识别→分析流程。
+  Future<void> _pasteQuestionText() async {
+    final config = await ref.read(settingsRepositoryProvider).getAiProviderConfig();
+    if (!mounted) return;
+    if (config == null ||
+        config.baseUrl.isEmpty ||
+        config.apiKey.isEmpty ||
+        config.model.isEmpty) {
+      await _showAiSetupDialog();
       return;
     }
-    final router = GoRouter.of(context);
-    setState(() {
-      _isLoading = true;
-      _loadingMessage = fromPdf ? '正在解析 PDF...' : '正在选择试卷页面...';
-      _errorMessage = null;
-    });
+    final text = await _showPasteDialog();
+    if (!mounted) return;
+    final trimmed = text?.trim() ?? '';
+    if (trimmed.isEmpty) return;
+
+    final record = QuestionRecord.draft(
+      id: const Uuid().v4(),
+      imagePath: '',
+      subject: Subject.custom,
+      recognizedText: trimmed,
+    );
+    final session = ref.read(captureSessionProvider.notifier);
+    session.selectImage('');
+    session.setCurrentQuestion(record);
     try {
-      final capture = ref.read(captureServiceProvider);
-      final pages = fromPdf
-          ? await capture.pickPdfFromGallery()
-          : await capture.pickMultipleFromGallery();
-      if (!mounted) return;
-      if (pages.isEmpty) {
-        setState(() => _isLoading = false);
-        return;
-      }
-      final session = WorksheetImportSession(
-        id: const Uuid().v4(),
-        pages: pages,
-        sourcePageIds: pages.map((page) => page.id).toSet(),
-        createdAt: DateTime.now(),
-      );
-      await persistWorksheetImport(ref, session);
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      if (widget.showCloseButton) Navigator.pop(context);
-      router.go('/worksheet/import');
+      await ref.read(questionRepositoryProvider).saveDraft(record);
     } catch (error) {
+      session.endSession();
       if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _errorMessage = '${fromPdf ? 'PDF' : '整页试卷'}导入失败：$error';
-      });
+      setState(() => _errorMessage = '保存录题草稿失败：$error');
+      return;
     }
+    if (widget.showCloseButton) Navigator.pop(context);
+    GoRouter.of(context).go('/analysis/loading');
   }
 
-  Future<void> _captureWorksheetContinuously() async {
-    if (ref.read(currentWorksheetImportProvider) != null) {
-      setState(() => _errorMessage = '已有试卷导入任务，请先完成或取消当前批次。');
-      return;
-    }
-    final captureState = ref.read(captureSessionProvider);
-    if (captureState.imagePath != null && !captureState.isTerminal) {
-      setState(() => _errorMessage = '当前有单题录入任务，请先继续完成。');
-      return;
-    }
-    final router = GoRouter.of(context);
-    final pages = <QuestionRecord>[];
-    setState(() {
-      _isLoading = true;
-      _loadingMessage = '正在连续拍摄试卷...';
-      _errorMessage = null;
-    });
-    try {
-      while (mounted) {
-        final result = await ref.read(captureServiceProvider).pickFromCamera();
-        if (!mounted) return;
-        if (result.isCancelled) break;
-        if (result.record == null || result.errorMessage != null) {
-          throw StateError(result.errorMessage ?? '相机未返回图片');
-        }
-        pages.add(result.record!);
-        final continueCapture = await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (dialogContext) => AlertDialog(
-            title: Text('已拍摄 ${pages.length} 页'),
-            content: const Text('继续拍摄下一页，或完成并进入试卷整理。'),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('完成拍摄'),
-              ),
-              FilledButton.icon(
-                onPressed: () => Navigator.pop(dialogContext, true),
-                icon: const Icon(CupertinoIcons.camera),
-                label: const Text('继续拍摄'),
-              ),
-            ],
+  /// 弹出粘贴文本框，返回用户提交的文本（取消返回 null）。
+  Future<String?> _showPasteDialog() async {
+    final controller = TextEditingController();
+    if (!mounted) return null;
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('复制粘贴录入'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: TextField(
+            controller: controller,
+            maxLines: 8,
+            minLines: 4,
+            decoration: const InputDecoration(
+              hintText: '粘贴题目文本，交给 AI 识别与分析',
+              border: OutlineInputBorder(),
+            ),
           ),
-        );
-        if (continueCapture != true) break;
-      }
-      if (!mounted) return;
-      if (pages.isEmpty) {
-        setState(() => _isLoading = false);
-        return;
-      }
-      await persistWorksheetImport(
-        ref,
-        WorksheetImportSession(
-          id: const Uuid().v4(),
-          pages: pages,
-          sourcePageIds: pages.map((page) => page.id).toSet(),
-          createdAt: DateTime.now(),
         ),
-      );
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      if (widget.showCloseButton) Navigator.pop(context);
-      router.go('/worksheet/import');
-    } catch (error) {
-      for (final page in pages) {
-        await ref.read(captureServiceProvider).discardManagedImage(page.imagePath);
-      }
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _errorMessage = '连续拍摄失败：$error';
-      });
-    }
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, null),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('开始分析'),
+          ),
+        ],
+      ),
+    );
+    return result;
   }
 
   Future<void> _showAiSetupDialog() async {

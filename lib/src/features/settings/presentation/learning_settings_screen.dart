@@ -162,7 +162,7 @@ class _LearningSettingsScreenState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
-                            'PaddleOCR / MinerU / Auto 识别完成后的默认动作',
+                            'AI 识别完成后的默认动作',
                             style: TextStyle(
                                 fontSize: 12,
                                 color: colorScheme.onSurfaceVariant),

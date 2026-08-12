@@ -896,19 +896,12 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
     );
     if (confirmed != true || !mounted) return;
 
-    final worksheet = ref.read(currentWorksheetImportProvider);
-    if (worksheet != null && !worksheet.sourcePageIds.contains(record.id)) {
-      await persistWorksheetImport(
-        ref,
-        worksheet.copyWith(pages: worksheet.pages.where((item) => item.id != record.id).toList()),
-      );
-    }
     await ref.read(questionRepositoryProvider).delete(record.id);
     await ref.read(imageStorageServiceProvider).deleteImage(record.imagePath);
     ref.read(currentQuestionProvider.notifier).state = null;
     invalidateQuestionList(ref);
     if (!mounted) return;
-    context.go(worksheet == null ? '/' : '/worksheet/import');
+    context.go('/');
   }
 
   Future<void> _editReviewField(
@@ -1086,17 +1079,6 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
 
   Future<void> _persistReviewedRecord(QuestionRecord updated) async {
     await ref.read(questionRepositoryProvider).saveDraft(updated);
-    final worksheet = ref.read(currentWorksheetImportProvider);
-    if (worksheet != null && !worksheet.sourcePageIds.contains(updated.id)) {
-      await persistWorksheetImport(
-        ref,
-        worksheet.copyWith(
-          pages: worksheet.pages
-              .map((page) => page.id == updated.id ? updated : page)
-              .toList(),
-        ),
-      );
-    }
     ref.read(currentQuestionProvider.notifier).state = updated;
     invalidateQuestionList(ref);
   }
@@ -1172,17 +1154,6 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
         source: AiConfirmationSource.currentResult,
       );
       await ref.read(questionRepositoryProvider).saveDraft(confirmed);
-      final worksheet = ref.read(currentWorksheetImportProvider);
-      if (worksheet != null && !worksheet.sourcePageIds.contains(confirmed.id)) {
-        await persistWorksheetImport(
-          ref,
-          worksheet.copyWith(
-            pages: worksheet.pages
-                .map((page) => page.id == confirmed.id ? confirmed : page)
-                .toList(),
-          ),
-        );
-      }
       ref.read(currentQuestionProvider.notifier).state = confirmed;
       invalidateQuestionList(ref);
       // Knowledge links are created only after explicit confirmation.

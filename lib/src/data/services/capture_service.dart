@@ -120,8 +120,7 @@ class CaptureService {
   ///
   /// 调用 [PdfToImagesService.convertPdfToImages] 把 PDF 渲染成临时 PNG，
   /// 再复用 [_saveToDraft] 把每页图片持久化到应用目录并生成 [QuestionRecord]，
-  /// 流程与 [pickMultipleFromGallery] 一致：调用方拿到 records 后即可走
-  /// `WorksheetImportSession` 多页切题流程。
+  /// 流程与 [pickMultipleFromGallery] 一致：返回每页对应的 [QuestionRecord] 草稿列表。
   ///
   /// [maxPages] 限制最多渲染多少页，避免超大 PDF 拖垮内存（默认 50）。
   /// 返回空列表表示用户取消选择；其它错误抛出。

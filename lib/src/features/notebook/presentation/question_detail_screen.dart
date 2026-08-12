@@ -1212,8 +1212,7 @@ class _BannerItem extends StatelessWidget {
 /// OCR 识别内容对照卡片：展示原文 vs 校对后内容 + 结构化公式与表格。
 ///
 /// QuestionRecord 未对 formulas/tables/options 做结构化建模，这里从
-/// normalizedQuestionText 中用正则提取（与 worksheet_region_editor_screen
-/// 的 _formulasFor/_tablesFor 保持一致），在详情页提供与识别工作台对照的视图。
+/// normalizedQuestionText 中用正则提取，在详情页提供与识别内容对照的视图。
 class _OcrContentCard extends StatelessWidget {
   const _OcrContentCard({required this.question});
   final QuestionRecord question;
@@ -1463,7 +1462,6 @@ class _OcrContentCard extends StatelessWidget {
 
 /// Markdown 表格预览：把 `|` 分隔的文本渲染成 Table widget。
 ///
-/// 与 worksheet_region_editor_screen 的 _MarkdownTablePreview 行为一致，
 /// 详情页用于展示从 normalizedQuestionText 提取的表格段。
 class _MarkdownTablePreview extends StatelessWidget {
   const _MarkdownTablePreview({required this.source});

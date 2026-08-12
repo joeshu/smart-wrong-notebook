@@ -12,10 +12,8 @@ import 'package:smart_wrong_notebook/src/domain/models/content_status.dart';
 import 'package:smart_wrong_notebook/src/domain/models/capture_analysis_state.dart';
 import 'package:smart_wrong_notebook/src/domain/models/analysis_result.dart';
 import 'package:smart_wrong_notebook/src/domain/models/ai_analysis_review.dart';
-import 'package:smart_wrong_notebook/src/domain/models/layout_provider_config.dart';
 import 'package:smart_wrong_notebook/src/domain/models/question_record.dart';
 import 'package:smart_wrong_notebook/src/domain/models/subject.dart';
-import 'package:smart_wrong_notebook/src/domain/models/worksheet_import_session.dart';
 import 'package:smart_wrong_notebook/src/domain/services/ai_analysis_review_policy.dart';
 import 'package:smart_wrong_notebook/src/domain/services/analysis_result_submission_service.dart';
 import 'package:smart_wrong_notebook/src/domain/services/recognition_confirmation_policy.dart';
@@ -346,11 +344,9 @@ class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen> {
       // Recognition confirmation is a hard gate before problem solving. Worksheet
       // candidates have already passed the shared region workbench and therefore
       // continue through the automatic queue without a duplicate prompt.
-      final worksheetAuto = ref.read(worksheetAutoAnalyzeProvider);
       if (working.analysisResult == null &&
           working.tags.contains(RecognitionConfirmationPolicy.requiredTag) &&
-          working.contentStatus == ContentStatus.processing &&
-          !worksheetAuto) {
+          working.contentStatus == ContentStatus.processing) {
         final autoConfirm = (await SharedPreferences.getInstance())
                 .getBool('recognition_high_confidence_auto_confirm') ??
             false;
@@ -615,7 +611,6 @@ class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen> {
       final persisted = submitted!;
       ref.read(captureSessionProvider.notifier).updateCurrentQuestion(persisted);
       _completeCaptureSession(persisted.contentStatus);
-      await _replaceWorksheetQueueItem(persisted);
       _clearTimeoutTimer();
 
       // Only trusted analyses enter the controlled knowledge tree automatically.
@@ -625,13 +620,7 @@ class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen> {
       }
 
       if (mounted) {
-        final wasAutoQueue = ref.read(worksheetAutoAnalyzeProvider);
-        if (_continueWorksheetQueue(persisted)) return;
         _analysisRunning = false;
-        if (wasAutoQueue) {
-          context.go('/worksheet/import');
-          return;
-        }
         context.go('/analysis/result');
       }
     } on AiAnalysisException catch (e) {
@@ -653,14 +642,12 @@ class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen> {
         if (mounted && token == _analysisToken) {
           ref.read(captureSessionProvider.notifier).updateCurrentQuestion(failedDraft);
           _markRetryableCaptureSession(friendlyError, CaptureFailureKind.ai);
-          await _replaceWorksheetQueueItem(failedDraft);
           invalidateQuestionList(ref);
         }
       } catch (_) {
         // 持久化异常不能掩盖原始 AI 错误；错误页仍保留重试入口。
       }
       if (mounted) {
-        if (_continueWorksheetQueue(failedDraft)) return;
         // 极速模式下没有"已校对题干"，文案需调整；否则保留原文案。
         final suffix = _isQuickCapture
             ? '原图已保存到错题本，可重试、切换引擎，或重新裁剪/重新拍照。'
@@ -700,7 +687,6 @@ class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen> {
         if (mounted && token == _analysisToken) {
           ref.read(captureSessionProvider.notifier).updateCurrentQuestion(failedDraft);
           _markRetryableCaptureSession(friendlyError, CaptureFailureKind.unknown);
-          await _replaceWorksheetQueueItem(failedDraft);
           invalidateQuestionList(ref);
         }
       } catch (persistenceError, persistenceStack) {
@@ -758,38 +744,6 @@ class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen> {
     if (ref.read(captureSessionProvider).phase == CaptureAnalysisPhase.analyzing) {
       notifier.markRetryable(message, kind: kind);
     }
-  }
-
-  bool _continueWorksheetQueue(QuestionRecord completed) {
-    if (!ref.read(worksheetAutoAnalyzeProvider)) return false;
-    final worksheet = ref.read(currentWorksheetImportProvider);
-    if (worksheet == null || worksheet.sourcePageIds.contains(completed.id)) {
-      // 队列结束：把 autoAnalyze 持久化为 false，避免重启后误以为仍在批量分析。
-      Future<void>.microtask(() => setWorksheetAutoAnalyze(ref, false));
-      return false;
-    }
-    final next = worksheet.pages.where((item) =>
-        !worksheet.sourcePageIds.contains(item.id) &&
-        item.contentStatus == ContentStatus.processing &&
-        item.id != completed.id).toList();
-    if (next.isEmpty) {
-      Future<void>.microtask(() => setWorksheetAutoAnalyze(ref, false));
-      return false;
-    }
-    ref.read(captureSessionProvider.notifier).updateCurrentQuestion(next.first);
-    context.go('/analysis/loading');
-    return true;
-  }
-
-  Future<void> _replaceWorksheetQueueItem(QuestionRecord record) async {
-    final worksheet = ref.read(currentWorksheetImportProvider);
-    if (worksheet == null || worksheet.sourcePageIds.contains(record.id)) {
-      return;
-    }
-    final next = worksheet.pages
-        .map((item) => item.id == record.id ? record : item)
-        .toList();
-    await persistWorksheetImport(ref, worksheet.copyWith(pages: next));
   }
 
   Future<QuestionRecord?> _findReusableLocalAnalysis(QuestionRecord current) async {
@@ -954,14 +908,9 @@ class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen> {
                 FilledButton.icon(
                   onPressed: _retryCurrentStage,
                   icon: const Icon(CupertinoIcons.arrow_clockwise),
-                  label: Text('从“${_steps[_step]}”继续'),
+                  label: Text('从"${_steps[_step]}"继续'),
                   style: FilledButton.styleFrom(
                       minimumSize: const Size(120, 40)),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _showEngineSwitchDialog,
-                  icon: const Icon(CupertinoIcons.arrow_2_squarepath),
-                  label: const Text('切换引擎'),
                 ),
               ],
             ),
@@ -1036,15 +985,6 @@ class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen> {
     final repository = ref.read(questionRepositoryProvider);
     final others = (await repository.listAll()).where((item) => item.id != current.id).toList();
     await repository.delete(current.id);
-    final worksheet = ref.read(currentWorksheetImportProvider);
-    if (worksheet != null && worksheet.pages.any((item) => item.id == current.id)) {
-      await persistWorksheetImport(
-        ref,
-        worksheet.copyWith(
-          pages: worksheet.pages.where((item) => item.id != current.id).toList(),
-        ),
-      );
-    }
     if (current.imagePath.isNotEmpty &&
         !others.any((item) => item.imagePath == current.imagePath)) {
       final image = File(current.imagePath);
@@ -1086,108 +1026,6 @@ class _AnalysisLoadingScreenState extends ConsumerState<AnalysisLoadingScreen> {
     return 2;
   }
 
-  /// 弹出引擎选择器，让用户在普通 AI / PaddleOCR / MinerU 间切换。
-  /// - 选 AI：等同 [_retryCurrentStage]（从最近断点继续当前 AI 服务）。
-  /// - 选 PaddleOCR/MinerU：设置一次性 provider type，确保当前题目在
-  ///   worksheet session 中，跳转 `/worksheet/regions` 走文档识别流程。
-  Future<void> _showEngineSwitchDialog() async {
-    final choice = await showModalBottomSheet<_EngineChoice>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const Text('切换识别引擎',
-                  style:
-                      TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 4),
-              Text(
-                '当前题目识别失败或超时。可重试当前引擎，或切换到其他引擎继续识别。',
-                style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(ctx).colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 12),
-              ..._EngineChoice.values.map((item) => ListTile(
-                    leading: Icon(item.icon),
-                    title: Text(item.label),
-                    subtitle: Text(item.description),
-                    onTap: () => Navigator.pop(ctx, item),
-                  )),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (!mounted || choice == null) return;
-
-    switch (choice) {
-      case _EngineChoice.ai:
-        await _retryCurrentStage();
-      case _EngineChoice.paddle:
-        await _switchToWorksheetEngine(LayoutProviderType.paddleCloud);
-      case _EngineChoice.mineru:
-        await _switchToWorksheetEngine(LayoutProviderType.mineruCloud);
-    }
-  }
-
-  /// 切换到 PaddleOCR/MinerU 文档识别流程。
-  /// 若当前题目已在 worksheet session 中（典型：从 capture 进入），直接
-  /// 复用；否则把当前题目加入现有 session（或新建一个），再跳转。
-  Future<void> _switchToWorksheetEngine(LayoutProviderType type) async {
-    final current = ref.read(currentQuestionProvider);
-    if (current == null) {
-      if (mounted) context.go('/');
-      return;
-    }
-    ref.read(oneShotLayoutProviderTypeProvider.notifier).state = type;
-
-    final existing = ref.read(currentWorksheetImportProvider);
-    final alreadyInSession =
-        existing != null && existing.pages.any((p) => p.id == current.id);
-    if (!alreadyInSession) {
-      // WorksheetImportSession 的 sourcePageIds 是 final，无法通过 copyWith
-      // 修改，因此这里直接构造新会话。保留已有 pages 以避免丢历史草稿。
-      final pages = <QuestionRecord>[
-        ...?existing?.pages,
-        current,
-      ];
-      final sourcePageIds = <String>{
-        ...?existing?.sourcePageIds,
-        current.id,
-      };
-      await persistWorksheetImport(
-        ref,
-        WorksheetImportSession(
-          id: existing?.id ?? '',
-          pages: pages,
-          sourcePageIds: sourcePageIds,
-          createdAt: existing?.createdAt ?? DateTime.now(),
-        ),
-      );
-    }
-    if (mounted) context.go('/worksheet/regions');
-  }
-}
-
-enum _EngineChoice {
-  ai('普通 AI', '重新调用当前 AI 服务重试'),
-  paddle('PaddleOCR', '文档识别：文字、公式、表格、选项'),
-  mineru('MinerU', 'VLM 文档理解：复杂公式、多栏试卷');
-
-  const _EngineChoice(this.label, this.description);
-  final String label;
-  final String description;
-
-  IconData get icon => switch (this) {
-        _EngineChoice.ai => CupertinoIcons.sparkles,
-        _EngineChoice.paddle => CupertinoIcons.doc_text_search,
-        _EngineChoice.mineru => CupertinoIcons.doc_richtext,
-      };
 }
 
 class _AnalysisPipelineView extends StatefulWidget {

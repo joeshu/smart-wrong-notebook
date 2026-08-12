@@ -14,7 +14,6 @@ import 'package:smart_wrong_notebook/src/data/repositories/mistake_knowledge_lin
 import 'package:smart_wrong_notebook/src/data/repositories/pending_knowledge_point_mapping_repository.dart';
 import 'package:smart_wrong_notebook/src/data/repositories/question_knowledge_link_repository.dart';
 import 'package:smart_wrong_notebook/src/data/repositories/layout_provider_repository.dart';
-import 'package:smart_wrong_notebook/src/data/repositories/worksheet_import_repository.dart';
 import 'package:smart_wrong_notebook/src/data/repositories/worksheet_draft_repository.dart';
 import 'package:smart_wrong_notebook/src/data/repositories/settings_repository.dart';
 import 'package:smart_wrong_notebook/src/domain/repositories/review_log_repository.dart';
@@ -41,9 +40,7 @@ import 'package:smart_wrong_notebook/src/domain/models/question_knowledge_link.d
 import 'package:smart_wrong_notebook/src/domain/models/question_split_session.dart';
 import 'package:smart_wrong_notebook/src/domain/models/recommendation.dart';
 import 'package:smart_wrong_notebook/src/domain/models/review_log.dart';
-import 'package:smart_wrong_notebook/src/domain/models/worksheet_import_session.dart';
 import 'package:smart_wrong_notebook/src/domain/models/worksheet_draft.dart';
-import 'package:smart_wrong_notebook/src/domain/models/worksheet_review_summary.dart';
 import 'package:smart_wrong_notebook/src/domain/models/subject.dart';
 import 'package:smart_wrong_notebook/src/domain/services/knowledge_point_mapping_service.dart';
 import 'package:smart_wrong_notebook/src/domain/services/knowledge_point_management_service.dart';
@@ -159,59 +156,6 @@ final FutureProvider<List<WorksheetDraft>> savedWorksheetDraftsProvider =
     FutureProvider<List<WorksheetDraft>>((ref) {
   return ref.watch(worksheetDraftRepositoryProvider).loadAll();
 });
-
-final StateProvider<WorksheetImportSession?> currentWorksheetImportProvider =
-    StateProvider<WorksheetImportSession?>((ref) => null);
-
-/// 从持久化仓库恢复上次未完成的导入批次。
-///
-/// 在 app 启动时调用，避免 App 被系统杀掉后批次状态丢失。
-/// 返回恢复的 session（同时写入 [currentWorksheetImportProvider]）；
-/// 无草稿时返回 null。
-Future<WorksheetImportSession?> restoreWorksheetImport(WidgetRef ref) async {
-  final restored = await ref.read(worksheetImportRepositoryProvider).load();
-  ref.read(currentWorksheetImportProvider.notifier).state = restored;
-  return restored;
-}
-
-/// 仅读取持久化仓库中的批次，不依赖 WidgetRef。
-/// 用于 app 启动时（ProviderScope 尚未建立）预加载批次。
-Future<WorksheetImportSession?> loadWorksheetImportSession(
-    WorksheetImportRepository repository) async {
-  return repository.load();
-}
-
-Future<void> persistWorksheetImport(
-    WidgetRef ref, WorksheetImportSession? session) async {
-  final repository = ref.read(worksheetImportRepositoryProvider);
-  if (session == null) {
-    await repository.clear();
-  } else {
-    await repository.save(session);
-  }
-  ref.read(currentWorksheetImportProvider.notifier).state = session;
-}
-
-final StateProvider<WorksheetReviewSummary?> currentWorksheetReviewSummaryProvider =
-    StateProvider<WorksheetReviewSummary?>((ref) => null);
-
-/// Whether the worksheet importer should continue through remaining question
-/// candidates without opening a result page after every successful analysis.
-final StateProvider<bool> worksheetAutoAnalyzeProvider =
-    StateProvider<bool>((ref) => false);
-
-/// 统一更新 [worksheetAutoAnalyzeProvider] 并把状态同步进当前 session（持久化）。
-///
-/// 在跨进程恢复时，[WorksheetImportRepository.load] 会从持久化读回 autoAnalyze，
-/// 启动后由 main.dart 通过 override 写入 [worksheetAutoAnalyzeProvider]；运行期
-/// 调用本 helper 才能保证两者一致。session 不存在时仅更新内存状态（兼容单题
-/// 流程或测试场景）。
-Future<void> setWorksheetAutoAnalyze(WidgetRef ref, bool value) async {
-  ref.read(worksheetAutoAnalyzeProvider.notifier).state = value;
-  final session = ref.read(currentWorksheetImportProvider);
-  if (session == null || session.autoAnalyze == value) return;
-  await persistWorksheetImport(ref, session.copyWith(autoAnalyze: value));
-}
 
 // --- Notebook filter state ---
 

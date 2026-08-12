@@ -19,7 +19,6 @@ class UnifiedActionPanel extends StatelessWidget {
   const UnifiedActionPanel({
     required this.plan,
     required this.pendingRecognition,
-    required this.hasPendingBatch,
     required this.topMistakeCategory,
     required this.onOpenReview,
     required this.onOpenRecognize,
@@ -28,7 +27,6 @@ class UnifiedActionPanel extends StatelessWidget {
 
   final TodayReviewPlan plan;
   final int pendingRecognition;
-  final bool hasPendingBatch;
   final MistakeCategory? topMistakeCategory;
   final VoidCallback onOpenReview;
   final VoidCallback onOpenRecognize;
@@ -51,9 +49,7 @@ class UnifiedActionPanel extends StatelessWidget {
           )
         : hasPending
             ? (
-                icon: hasPendingBatch
-                    ? CupertinoIcons.rectangle_stack
-                    : CupertinoIcons.text_badge_checkmark,
+                icon: CupertinoIcons.text_badge_checkmark,
                 title: '先确认 $pendingRecognition 项识别内容',
                 reason: '先把题干和低置信字段核对清楚，再让 AI 分析，避免错误结论进入错题本。',
                 meta: '约 ${pendingRecognition * 2} 分钟 · 完成后自动进入分析',
@@ -74,9 +70,7 @@ class UnifiedActionPanel extends StatelessWidget {
     final secondary = <Widget>[
       if (hasDue && hasPending)
         ActionTile(
-          icon: hasPendingBatch
-              ? CupertinoIcons.rectangle_stack
-              : CupertinoIcons.text_badge_checkmark,
+          icon: CupertinoIcons.text_badge_checkmark,
           color: Theme.of(context).colorScheme.secondary,
           title: '稍后确认识别内容',
           subtitle: '$pendingRecognition 项待处理',

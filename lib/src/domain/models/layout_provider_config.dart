@@ -1,4 +1,4 @@
-enum LayoutProviderType { currentVision, paddleCloud, mineruCloud, autoCloud, customHttp, manualOnly }
+enum LayoutProviderType { currentVision, customHttp, manualOnly }
 
 class LayoutProviderConfig {
   const LayoutProviderConfig({
@@ -15,8 +15,5 @@ class LayoutProviderConfig {
 
   bool get isReady => type == LayoutProviderType.manualOnly ||
       type == LayoutProviderType.currentVision ||
-      (type == LayoutProviderType.paddleCloud && apiKey.isNotEmpty) ||
-      (type == LayoutProviderType.mineruCloud && apiKey.isNotEmpty) ||
-      (type == LayoutProviderType.autoCloud && apiKey.isNotEmpty && secondaryApiKey.isNotEmpty) ||
       (type == LayoutProviderType.customHttp && baseUrl.isNotEmpty);
 }

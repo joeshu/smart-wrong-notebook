@@ -15,7 +15,6 @@ import 'package:smart_wrong_notebook/src/features/review/presentation/review_scr
 import 'package:smart_wrong_notebook/src/features/settings/presentation/settings_screen.dart';
 import 'package:smart_wrong_notebook/src/features/settings/presentation/provider_config_screen.dart';
 import 'package:smart_wrong_notebook/src/features/settings/presentation/model_strategy_center_screen.dart';
-import 'package:smart_wrong_notebook/src/features/settings/presentation/layout_provider_config_screen.dart';
 import 'package:smart_wrong_notebook/src/features/settings/presentation/subject_management_screen.dart';
 import 'package:smart_wrong_notebook/src/features/settings/presentation/prompt_settings_screen.dart';
 import 'package:smart_wrong_notebook/src/features/settings/presentation/data_management_screen.dart';
@@ -33,9 +32,6 @@ import 'package:smart_wrong_notebook/src/features/capture/presentation/add_scree
 import 'package:smart_wrong_notebook/src/features/capture/presentation/capture_entry_launcher.dart';
 import 'package:smart_wrong_notebook/src/features/capture/presentation/image_crop_screen.dart';
 import 'package:smart_wrong_notebook/src/features/capture/presentation/question_correction_screen.dart';
-import 'package:smart_wrong_notebook/src/features/worksheet_import/presentation/worksheet_import_screen.dart';
-import 'package:smart_wrong_notebook/src/features/worksheet_import/presentation/worksheet_region_editor_screen.dart';
-import 'package:smart_wrong_notebook/src/features/worksheet_import/presentation/worksheet_review_summary_screen.dart';
 import 'package:smart_wrong_notebook/src/features/ocr/presentation/question_save_confirmation_screen.dart';
 import 'package:smart_wrong_notebook/src/features/ocr/presentation/recognition_confirmation_screen.dart';
 import 'package:smart_wrong_notebook/src/features/ocr/presentation/question_split_confirmation_screen.dart';
@@ -120,9 +116,6 @@ GoRouter buildRouter(SettingsRepository settingsRepo,
                       path: 'prompts',
                       builder: (_, __) => const PromptSettingsScreen()),
                   GoRoute(
-                      path: 'layout',
-                      builder: (_, __) => const LayoutProviderConfigScreen()),
-                  GoRoute(
                     path: 'data',
                     builder: (_, __) => const DataManagementScreen()),
                   GoRoute(
@@ -175,15 +168,6 @@ GoRouter buildRouter(SettingsRepository settingsRepo,
       GoRoute(
           path: '/capture/crop',
           pageBuilder: (_, __) => _buildPage(const ImageCropScreen())),
-      GoRoute(
-          path: '/worksheet/import',
-          pageBuilder: (_, __) => _buildPage(const WorksheetImportScreen())),
-      GoRoute(
-          path: '/worksheet/review-summary',
-          pageBuilder: (_, __) => _buildPage(const WorksheetReviewSummaryScreen())),
-      GoRoute(
-          path: '/worksheet/regions',
-          pageBuilder: (_, __) => _buildPage(const WorksheetRegionEditorScreen())),
       GoRoute(
           path: '/capture/correction',
           pageBuilder: (_, __) => _buildPage(const QuestionCorrectionScreen())),

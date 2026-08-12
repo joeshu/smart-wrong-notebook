@@ -12,7 +12,6 @@ import 'package:smart_wrong_notebook/src/common/widgets/stats_chart.dart';
 import 'package:smart_wrong_notebook/src/domain/models/mastery_level.dart';
 import 'package:smart_wrong_notebook/src/domain/models/mistake_category.dart';
 import 'package:smart_wrong_notebook/src/domain/models/question_record.dart';
-import 'package:smart_wrong_notebook/src/domain/models/worksheet_import_session.dart';
 import 'package:smart_wrong_notebook/src/core/constants/app_strings.dart';
 import 'package:smart_wrong_notebook/src/features/notebook/application/knowledge_point_practice_controller.dart';
 import 'package:smart_wrong_notebook/src/shared/models/question_display_status.dart';
@@ -54,24 +53,12 @@ class HomeScreen extends ConsumerWidget {
       ..sort((a, b) => b.value.compareTo(a.value));
     final topMistakeCategory =
         rankedMistakes.isEmpty ? null : rankedMistakes.first.key;
-    final worksheetSession = ref.watch(currentWorksheetImportProvider);
-    final hasPendingBatch = worksheetSession?.pages.any((item) {
-          final status = inferQuestionDisplayStatus(item);
-          return status.isInProgress ||
-              status.isFailed ||
-              status == QuestionDisplayStatus.recognized ||
-              status == QuestionDisplayStatus.needsConfirmation;
-        }) ??
-        false;
 
     final visual = AppVisualTokens.of(context);
     final todayPlan = todayPlanAsync.valueOrNull;
     final pendingRecognition = questionsAsync.valueOrNull == null
         ? 0
-        : _countPendingRecognition(
-            questionsAsync.valueOrNull!,
-            worksheetSession,
-          );
+        : _countPendingRecognition(questionsAsync.valueOrNull!);
     final heroReviewFirst = (todayPlan?.dueCount ?? 0) > 0;
     final heroContinueRecognition = !heroReviewFirst && pendingRecognition > 0;
     final heroActionLabel = heroReviewFirst
@@ -87,9 +74,7 @@ class HomeScreen extends ConsumerWidget {
     final heroAction = heroReviewFirst
         ? () => context.go('/review')
         : heroContinueRecognition
-            ? () => context.go(
-                  hasPendingBatch ? '/worksheet/import' : '/notebook',
-                )
+            ? () => context.go('/notebook')
             : () => context.push('/add');
 
     return AppPage(
@@ -117,20 +102,14 @@ class HomeScreen extends ConsumerWidget {
           // 按优先级从上到下排列；全部为空时显示空状态引导。
           questionsAsync.when(
             data: (questions) {
-              final pendingRecognition = _countPendingRecognition(
-                questions,
-                worksheetSession,
-              );
+              final pendingRecognition = _countPendingRecognition(questions);
               return todayPlanAsync.when(
                 data: (plan) => UnifiedActionPanel(
                   plan: plan,
                   pendingRecognition: pendingRecognition,
-                  hasPendingBatch: hasPendingBatch,
                   topMistakeCategory: topMistakeCategory,
                   onOpenReview: () => context.go('/review'),
-                  onOpenRecognize: hasPendingBatch
-                      ? () => context.go('/worksheet/import')
-                      : () => context.go('/notebook'),
+                  onOpenRecognize: () => context.go('/notebook'),
                   onCapture: () => context.push('/add'),
                 ),
                 loading: () => const _TodayPlanSkeleton(),
@@ -140,33 +119,27 @@ class HomeScreen extends ConsumerWidget {
                 ),
               );
             },
-            loading: () => todayPlanAsync.when(
-              data: (plan) => UnifiedActionPanel(
-                plan: plan,
-                pendingRecognition: 0,
-                hasPendingBatch: hasPendingBatch,
-                topMistakeCategory: topMistakeCategory,
-                onOpenReview: () => context.go('/review'),
-                onOpenRecognize: hasPendingBatch
-                    ? () => context.go('/worksheet/import')
-                    : () => context.go('/notebook'),
-                onCapture: () => context.push('/add'),
-              ),
+              loading: () => todayPlanAsync.when(
+                data: (plan) => UnifiedActionPanel(
+                  plan: plan,
+                  pendingRecognition: 0,
+                  topMistakeCategory: topMistakeCategory,
+                  onOpenReview: () => context.go('/review'),
+                  onOpenRecognize: () => context.go('/notebook'),
+                  onCapture: () => context.push('/add'),
+                ),
               loading: () => const _TodayPlanSkeleton(),
               error: (_, __) => const SizedBox.shrink(),
             ),
-            error: (_, __) => todayPlanAsync.when(
-              data: (plan) => UnifiedActionPanel(
-                plan: plan,
-                pendingRecognition: 0,
-                hasPendingBatch: hasPendingBatch,
-                topMistakeCategory: topMistakeCategory,
-                onOpenReview: () => context.go('/review'),
-                onOpenRecognize: hasPendingBatch
-                    ? () => context.go('/worksheet/import')
-                    : () => context.go('/notebook'),
-                onCapture: () => context.push('/add'),
-              ),
+              error: (_, __) => todayPlanAsync.when(
+                data: (plan) => UnifiedActionPanel(
+                  plan: plan,
+                  pendingRecognition: 0,
+                  topMistakeCategory: topMistakeCategory,
+                  onOpenReview: () => context.go('/review'),
+                  onOpenRecognize: () => context.go('/notebook'),
+                  onCapture: () => context.push('/add'),
+                ),
               loading: () => const _TodayPlanSkeleton(),
               error: (_, __) => const SizedBox.shrink(),
             ),
@@ -1238,29 +1211,14 @@ class _LowConfidenceHintCard extends StatelessWidget {
   }
 }
 
-/// Phase 8-1：统计「未完成识别」题目数（含批量导入批次 + 错题本内的
+/// Phase 8-1：统计「未完成识别」题目数（错题本内的
 /// 待AI/待校对/识别失败/分析失败），用于统一行动面板的识别行动卡。
-int _countPendingRecognition(
-  List<QuestionRecord> questions,
-  WorksheetImportSession? worksheetSession,
-) {
+int _countPendingRecognition(List<QuestionRecord> questions) {
   // 错题本内的未完成项
   var count = 0;
   for (final q in questions) {
     final status = inferQuestionDisplayStatus(q);
     if (status.isInProgress || status.isFailed) count++;
-  }
-  // 批量导入批次的未完成项（页面级别）
-  if (worksheetSession != null) {
-    for (final page in worksheetSession.pages) {
-      final status = inferQuestionDisplayStatus(page);
-      if (status.isInProgress ||
-          status.isFailed ||
-          status == QuestionDisplayStatus.recognized ||
-          status == QuestionDisplayStatus.needsConfirmation) {
-        count++;
-      }
-    }
   }
   return count;
 }

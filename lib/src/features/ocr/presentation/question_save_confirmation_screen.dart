@@ -494,16 +494,6 @@ class _QuestionSaveConfirmationScreenState
     final router = GoRouter.of(context);
     await ref.read(questionRepositoryProvider).saveDraft(updated);
     invalidateQuestionList(ref);
-    final worksheet = ref.read(currentWorksheetImportProvider);
-    if (worksheet != null) {
-      final remaining = worksheet.pages
-          .where((page) => page.id != current.id)
-          .toList();
-      await persistWorksheetImport(
-        ref,
-        remaining.isEmpty ? null : worksheet.copyWith(pages: remaining),
-      );
-    }
     ref.read(currentQuestionProvider.notifier).state = null;
     if (!mounted) return;
     messenger.showSnackBar(
@@ -512,9 +502,7 @@ class _QuestionSaveConfirmationScreenState
         duration: Duration(seconds: 2),
       ),
     );
-    router.go(worksheet == null || worksheet.pages.length <= 1
-        ? '/notebook'
-        : '/worksheet/import');
+    router.go('/notebook');
   }
 
   bool _shouldShowWarning() {

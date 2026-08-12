@@ -14,9 +14,8 @@ enum PostRecognitionAiChoice {
 
 /// Phase 10-3：「识别完成，是否交给普通 AI？」统一决策弹窗。
 ///
-/// 替代原本散落在 `worksheet_region_editor_screen` 中的私有实现，
-/// 让 capture 入口 / analysis loading 入口可在 PaddleOCR/MinerU/Auto
-/// 等路径上复用同一个决策点。
+/// 替代原本散落在各入口中的私有实现，
+/// 让 capture 入口 / analysis loading 入口复用同一个「是否交给普通 AI」决策点。
 ///
 /// - [regionCount]：识别到的候选题框数量，用于文案。
 /// - [providerLabel]：识别引擎名（如 "PaddleOCR"），用于文案。
