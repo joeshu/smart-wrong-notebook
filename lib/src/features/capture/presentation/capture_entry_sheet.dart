@@ -428,14 +428,17 @@ class _CaptureEntrySheetState extends ConsumerState<CaptureEntrySheet> {
 
     final question = ref.read(currentQuestionProvider);
     final session = ref.read(captureSessionProvider.notifier);
-    debugPrint('[DISCARD] deleting question=${question?.id}');
+    debugPrint('[DISCARD] deleting question=${question?.id} '
+        'repo=${ref.read(questionRepositoryProvider).runtimeType}');
     try {
       if (question != null) {
         await ref.read(questionRepositoryProvider).delete(question.id);
+        debugPrint('[DISCARD] delete done');
         if (question.imagePath.isNotEmpty) {
           await ref
               .read(captureServiceProvider)
               .discardManagedImage(question.imagePath);
+          debugPrint('[DISCARD] discard image done');
         }
       }
     } catch (error) {
