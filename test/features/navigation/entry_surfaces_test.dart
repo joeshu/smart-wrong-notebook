@@ -167,6 +167,8 @@ void main() {
     await tester.tap(find.text('放弃并删除'));
     await tester.pumpAndSettle();
 
+    debugPrint('[DISCARD] after tap: current=${container.read(currentQuestionProvider)} '
+        'phase=${container.read(captureSessionProvider).phase}');
     expect(container.read(currentQuestionProvider), isNull);
     expect(container.read(captureSessionProvider).isTerminal, isTrue);
     expect(find.text('继续当前录题'), findsNothing);
