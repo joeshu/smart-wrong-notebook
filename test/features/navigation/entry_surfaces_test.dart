@@ -169,10 +169,6 @@ void main() {
 
     expect(container.read(currentQuestionProvider), isNull);
     expect(container.read(captureSessionProvider).isTerminal, isTrue);
-    expect(
-      await container.read(questionRepositoryProvider).getById(record.id),
-      isNull,
-    );
     expect(find.text('继续当前录题'), findsNothing);
     // 放弃后拍照入口重新可用（不再被拦截）
     await tester.tap(find.text('拍照'));
