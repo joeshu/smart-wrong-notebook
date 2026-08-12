@@ -34,6 +34,9 @@ Future<void> main() async {
   print('RAW AFTER SYNC: ${await settings.getString(AiModelStrategyStore.storageKey)}');
 
   final reloaded = await AiModelStrategyStore(settings).load();
+  print('RAW BEFORE RELOAD: ${await settings.getString(AiModelStrategyStore.storageKey)}');
   print('AFTER RELOAD: general=${reloaded.routeFor(AiTaskProfile.generalAnalysis)?.primaryModel} '
       'providerId=${reloaded.routeFor(AiTaskProfile.generalAnalysis)?.primaryProviderId}');
+  print('RAW AFTER RELOAD: ${await settings.getString(AiModelStrategyStore.storageKey)}');
+  print('PROVIDER AFTER RELOAD: ${(await settings.getAiProviderConfig())?.model}');
 }
