@@ -7,7 +7,6 @@ void main() {
   Widget host({
     required TodayReviewPlan plan,
     int pendingRecognition = 0,
-    bool hasPendingBatch = false,
     VoidCallback? onReview,
     VoidCallback? onRecognize,
     VoidCallback? onCapture,
@@ -18,7 +17,6 @@ void main() {
           child: UnifiedActionPanel(
             plan: plan,
             pendingRecognition: pendingRecognition,
-            hasPendingBatch: hasPendingBatch,
             topMistakeCategory: null,
             onOpenReview: onReview ?? () {},
             onOpenRecognize: onRecognize ?? () {},

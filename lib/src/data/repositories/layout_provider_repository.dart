@@ -4,7 +4,6 @@ import 'package:smart_wrong_notebook/src/domain/models/layout_provider_config.da
 
 class LayoutProviderRepository {
   static const _configKey = 'layout_provider_config_v1';
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   Future<LayoutProviderConfig> load() async {
     final raw = (await SharedPreferences.getInstance()).getString(_configKey);
