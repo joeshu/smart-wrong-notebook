@@ -30,6 +30,9 @@ enum Subject {
   static String? resolveLabel(String name) {
     if (name.isEmpty) return null;
     for (final subject in Subject.values) {
+      // 自定义/未指定科目（复制粘贴录入默认值）不映射为中文 label，
+      // 交给调用方改用中性描述并请模型自行判定科目，避免喂 "自定义科目的错题"。
+      if (subject == Subject.custom) continue;
       if (subject.name == name || subject.label == name) return subject.label;
     }
     return null;
