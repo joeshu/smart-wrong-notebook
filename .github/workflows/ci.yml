@@ -72,6 +72,8 @@ jobs:
 
       # 在已启动的 Android 模拟器上跑 flutter test：
       # 设备已连接时 flutter test 为 Android 平台编译，webview_flutter 等插件可正常编译。
+      # 注意：android-emulator-runner 会把 script 的每一行当作独立 shell 命令执行，
+      # 因此不能写多行 heredoc；解析逻辑抽到 scripts/parse_flutter_test.py 用单行调用。
       - name: Run tests on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -81,38 +83,8 @@ jobs:
           profile: pixel_6
           force-avd-creation: false
           script: |
-            set +e
             flutter test --machine --dart-define=FLUTTER_TEST=true -d emulator-5554 > test-results-android.jsonl 2>&1
-            status=$?
-            python3 - <<'PY'
-            import json
-            from pathlib import Path
-            lines = Path('test-results-android.jsonl').read_text(errors='replace').splitlines()
-            tests = {}
-            for raw in lines:
-                try:
-                    event = json.loads(raw)
-                except json.JSONDecodeError:
-                    continue
-                if not isinstance(event, dict):
-                    continue
-                if event.get('type') == 'testStart':
-                    test = event.get('test') or {}
-                    tests[test.get('id')] = test.get('name', test.get('url', 'unknown test'))
-                elif event.get('type') == 'print' and ('EXCEPTION' in str(event.get('message')) or 'TestFailure' in str(event.get('message'))):
-                    message = str(event.get('message', 'Test failure'))[:1200]
-                    message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-                    print(f'::error title=Flutter Test exception::{message}')
-                elif event.get('type') == 'error':
-                    message = str(event.get('error', 'Test error'))[:1200]
-                    message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-                    print(f'::error title=Flutter Test error::{message}')
-                elif event.get('type') == 'testDone' and event.get('result') not in ('success', 'skipped'):
-                    test_id = event.get('testID')
-                    message = f"{tests.get(test_id, test_id)} ({event.get('result')})"
-                    print(f'::error title=Flutter Test failed::{message}')
-            PY
-            exit "$status"
+            python3 scripts/parse_flutter_test.py test-results-android.jsonl
 
       - name: Upload Android test results
         if: always()
@@ -160,38 +132,8 @@ jobs:
       # 在 iOS 模拟器上跑 flutter test：为 iOS 平台编译，webview_flutter 等插件可正常编译。
       - name: Run tests on iOS simulator
         run: |
-          set +e
           flutter test --machine --dart-define=FLUTTER_TEST=true -d "$IOS_UDID" > test-results-ios.jsonl 2>&1
-          status=$?
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          lines = Path('test-results-ios.jsonl').read_text(errors='replace').splitlines()
-          tests = {}
-          for raw in lines:
-              try:
-                  event = json.loads(raw)
-              except json.JSONDecodeError:
-                  continue
-              if not isinstance(event, dict):
-                  continue
-              if event.get('type') == 'testStart':
-                  test = event.get('test') or {}
-                  tests[test.get('id')] = test.get('name', test.get('url', 'unknown test'))
-              elif event.get('type') == 'print' and ('EXCEPTION' in str(event.get('message')) or 'TestFailure' in str(event.get('message'))):
-                  message = str(event.get('message', 'Test failure'))[:1200]
-                  message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-                  print(f'::error title=Flutter Test exception::{message}')
-              elif event.get('type') == 'error':
-                  message = str(event.get('error', 'Test error'))[:1200]
-                  message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-                  print(f'::error title=Flutter Test error::{message}')
-              elif event.get('type') == 'testDone' and event.get('result') not in ('success', 'skipped'):
-                  test_id = event.get('testID')
-                  message = f"{tests.get(test_id, test_id)} ({event.get('result')})"
-                  print(f'::error title=Flutter Test failed::{message}')
-          PY
-          exit "$status"
+          python3 scripts/parse_flutter_test.py test-results-ios.jsonl
 
       - name: Upload iOS test results
         if: always()
